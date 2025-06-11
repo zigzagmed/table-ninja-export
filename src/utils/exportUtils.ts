@@ -1,4 +1,3 @@
-
 // Utility functions for exporting data in various formats
 
 import * as XLSX from 'xlsx';
@@ -350,14 +349,14 @@ export const generateLatexCode = (data: ExportData, config: ExportConfig, custom
       config.visibleColumns.includes(col)
     );
 
-    // Generate LaTeX table code
+    // Generate LaTeX table code similar to the example image
     let latexCode = `\\documentclass[12pt]{article}
 \\usepackage{booktabs}
 \\usepackage{array}
 \\usepackage{amsmath}
-\\usepackage[margin=0.5in]{geometry}
+\\usepackage[margin=1in]{geometry}
 \\begin{document}
-\\begin{table}[h]
+\\begin{table}[htbp]
 \\centering
 \\caption{${config.tableTitle}}
 \\begin{tabular}{${'l' + 'c'.repeat(visibleColumnOrder.length - 1)}}
@@ -365,10 +364,17 @@ export const generateLatexCode = (data: ExportData, config: ExportConfig, custom
 `;
 
     // Add header row
-    const headers = visibleColumnOrder.map(col => customHeaders[col]);
+    const headers = visibleColumnOrder.map(col => {
+      // Modify the header format to match the example image
+      if (col === 'variable') {
+        return '';  // Variable column might not need a header
+      } else {
+        return `(${visibleColumnOrder.indexOf(col)})\\\\${customHeaders[col]}`;
+      }
+    });
     latexCode += headers.join(' & ') + ' \\\\\n\\midrule\n';
 
-    // Add data rows
+    // Add data rows with t-statistics in parentheses
     data.coefficients.forEach((row: any) => {
       const rowData = visibleColumnOrder.map((columnId: string) => {
         if (columnId === 'variable') {
@@ -376,7 +382,9 @@ export const generateLatexCode = (data: ExportData, config: ExportConfig, custom
         } else if (columnId === 'coef') {
           const coef = formatNumber(row[columnId], 'coefficient', config.decimalPlaces);
           const stars = getSignificanceStars(row.p_value, config.showSignificance);
-          return `${coef}${stars}`;
+          // Include t-statistic in parentheses below
+          const tStat = row.t ? `(${formatNumber(row.t, 'default', 2)})` : '';
+          return `${coef}${stars} \\\\ ${tStat}`;
         } else if (columnId === 'p_value') {
           return formatNumber(row[columnId], 'pvalue', config.decimalPlaces);
         } else {
@@ -387,12 +395,19 @@ export const generateLatexCode = (data: ExportData, config: ExportConfig, custom
       latexCode += rowData.join(' & ') + ' \\\\\n';
     });
 
-    latexCode += '\\bottomrule\n\\end{tabular}\n';
+    // Add observations row
+    latexCode += '\\midrule\n';
+    latexCode += `Observations & ${data.modelInfo.observations} \\\\\n`;
 
-    // Add significance note if enabled
+    latexCode += '\\bottomrule\n';
+    latexCode += '\\end{tabular}\n';
+
+    // Add detailed footnotes like in the example
     if (config.showSignificance) {
       latexCode += '\\\\[0.5em]\n';
-      latexCode += '\\footnotesize{Note: * p$<$0.05, ** p$<$0.01, *** p$<$0.001}\n';
+      latexCode += '\\footnotesize{$t$ statistics in parentheses}\n';
+      latexCode += '\\footnotesize{$^{*}$ p$<$0.05, $^{**}$ p$<$0.01, $^{***}$ p$<$0.001}\n';
+      latexCode += '\\footnotesize{Note: Robust standard errors in parentheses}\n';
     }
 
     latexCode += '\\end{table}\n\\end{document}';

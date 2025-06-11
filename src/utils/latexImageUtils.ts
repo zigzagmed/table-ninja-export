@@ -17,7 +17,7 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
     // Create the LaTeX content wrapped in a styled div
     const content = document.createElement('div');
     content.style.fontSize = '14px';
-    content.style.fontFamily = 'serif';
+    content.style.fontFamily = 'Times New Roman, serif';
     content.style.color = '#000000';
     content.style.lineHeight = '1.5';
     content.style.whiteSpace = 'pre-wrap';
@@ -32,7 +32,7 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
         padding: 20px;
         background-color: #ffffff;
         border: 1px solid #e0e0e0;
-        font-family: 'Latin Modern Roman', 'Times New Roman', serif;
+        font-family: 'Computer Modern', 'Times New Roman', serif;
       }
       .latex-title {
         font-size: 16px;
@@ -44,6 +44,7 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
         border-collapse: collapse;
         width: 100%;
         margin: 0 auto;
+        font-size: 12px;
       }
       .latex-table th {
         border-bottom: 2px solid #000;
@@ -60,10 +61,17 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
         border-bottom: 2px solid #000;
       }
       .latex-notes {
-        font-size: 12px;
+        font-size: 10px;
         font-style: italic;
         margin-top: 10px;
         text-align: left;
+      }
+      .parenthesis {
+        font-size: 11px;
+        color: #444;
+      }
+      .significance-stars {
+        font-weight: bold;
       }
     `;
     container.appendChild(style);
@@ -108,63 +116,140 @@ export const createVisualLatexTable = (latexCode: string, title: string): HTMLEl
     const table = document.createElement('table');
     table.className = 'latex-table';
     
-    // Extract table content between \begin{tabular} and \end{tabular}
-    const tableMatch = latexCode.match(/\\begin{tabular}.*?\\end{tabular}/s);
-    if (tableMatch) {
-      const tableContent = tableMatch[0];
-      
-      // Extract headers (between \toprule and \midrule)
-      const headersMatch = tableContent.match(/\\toprule\s*(.*?)\\midrule/s);
-      if (headersMatch && headersMatch[1]) {
-        const headerRow = document.createElement('tr');
-        const headers = headersMatch[1].trim().split('&').map(h => h.trim().replace(/\\\\/g, ''));
+    // Parse the LaTeX code to create an academic-style table similar to the example
+    const tableHeaders = [];
+    const tableRows = [];
+    
+    // Extract column headers and data rows from LaTeX code
+    const lines = latexCode.split('\n');
+    let inTabular = false;
+    let columnCount = 0;
+    
+    lines.forEach(line => {
+      if (line.includes('\\begin{tabular}')) {
+        inTabular = true;
+        // Extract column format
+        const colFormatMatch = line.match(/\\begin{tabular}{(.+)}/);
+        if (colFormatMatch && colFormatMatch[1]) {
+          columnCount = colFormatMatch[1].replace(/[^lrc]/g, '').length;
+        }
+      } else if (line.includes('\\end{tabular}')) {
+        inTabular = false;
+      } else if (inTabular) {
+        // Process header or data row
+        if (line.includes('\\toprule') || line.includes('\\midrule') || line.includes('\\bottomrule')) {
+          return; // Skip these lines
+        }
         
-        headers.forEach(header => {
-          const th = document.createElement('th');
-          th.textContent = header;
-          headerRow.appendChild(th);
-        });
-        
-        const thead = document.createElement('thead');
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-      }
-      
-      // Extract data rows (between \midrule and \bottomrule)
-      const bodyMatch = tableContent.match(/\\midrule\s*(.*?)\\bottomrule/s);
-      if (bodyMatch && bodyMatch[1]) {
-        const tbody = document.createElement('tbody');
-        const rows = bodyMatch[1].trim().split('\\\\').filter(Boolean);
-        
-        rows.forEach(row => {
-          const tr = document.createElement('tr');
-          const cells = row.trim().split('&').map(cell => cell.trim());
+        // Split by & and clean up
+        if (line.trim() && !line.includes('\\footnotesize')) {
+          const rowData = line.split('&').map(cell => cell.trim().replace(/\\\\/g, ''));
           
-          cells.forEach(cell => {
-            const td = document.createElement('td');
+          // Clean up cells further
+          const cleanedRowData = rowData.map(cell => {
+            // Remove trailing backslashes and trim
+            return cell.replace(/\\\\$/, '').trim();
+          }).filter(cell => cell !== '');
+          
+          if (cleanedRowData.length > 0) {
+            // If we have enough cells, consider it a valid row
+            if (tableHeaders.length === 0) {
+              tableHeaders.push(...cleanedRowData);
+            } else {
+              tableRows.push(cleanedRowData);
+            }
+          }
+        }
+      }
+    });
+
+    // Create table structure similar to the academic paper format
+    // Headers
+    if (tableHeaders.length > 0) {
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      
+      tableHeaders.forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        headerRow.appendChild(th);
+      });
+      
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+    }
+    
+    // Data rows
+    if (tableRows.length > 0) {
+      const tbody = document.createElement('tbody');
+      
+      tableRows.forEach(rowData => {
+        const tr = document.createElement('tr');
+        
+        rowData.forEach((cell, index) => {
+          const td = document.createElement('td');
+          
+          // Check if the cell has parentheses for t-statistics or other values
+          const parenthesisMatch = cell.match(/^(.*?)(\(.+\))$/);
+          if (parenthesisMatch) {
+            const mainValue = document.createElement('div');
+            mainValue.textContent = parenthesisMatch[1].trim();
+            
+            // Add stars for significance
+            if (cell.includes('***')) {
+              mainValue.innerHTML = mainValue.textContent?.replace(/\*\*\*/g, '<span class="significance-stars">***</span>') || '';
+            } else if (cell.includes('**')) {
+              mainValue.innerHTML = mainValue.textContent?.replace(/\*\*/g, '<span class="significance-stars">**</span>') || '';
+            } else if (cell.includes('*')) {
+              mainValue.innerHTML = mainValue.textContent?.replace(/\*/g, '<span class="significance-stars">*</span>') || '';
+            }
+            
+            td.appendChild(mainValue);
+            
+            const parenthesisValue = document.createElement('div');
+            parenthesisValue.className = 'parenthesis';
+            parenthesisValue.textContent = parenthesisMatch[2];
+            td.appendChild(parenthesisValue);
+          } else {
             td.textContent = cell;
-            tr.appendChild(td);
-          });
+            
+            // Add stars for significance
+            if (cell.includes('***')) {
+              td.innerHTML = td.textContent?.replace(/\*\*\*/g, '<span class="significance-stars">***</span>') || '';
+            } else if (cell.includes('**')) {
+              td.innerHTML = td.textContent?.replace(/\*\*/g, '<span class="significance-stars">**</span>') || '';
+            } else if (cell.includes('*')) {
+              td.innerHTML = td.textContent?.replace(/\*/g, '<span class="significance-stars">*</span>') || '';
+            }
+          }
           
-          tbody.appendChild(tr);
+          tr.appendChild(td);
         });
         
-        table.appendChild(tbody);
-      }
+        tbody.appendChild(tr);
+      });
       
-      container.appendChild(table);
-      
-      // Extract notes if any
-      const notesMatch = latexCode.match(/\\footnotesize{(.*?)}/);
-      if (notesMatch && notesMatch[1]) {
-        const notes = document.createElement('div');
-        notes.className = 'latex-notes';
-        notes.textContent = notesMatch[1]
-          .replace(/p\$<\$0\.05/g, 'p<0.05')
-          .replace(/p\$<\$0\.01/g, 'p<0.01')
-          .replace(/p\$<\$0\.001/g, 'p<0.001');
-        container.appendChild(notes);
-      }
+      table.appendChild(tbody);
+    }
+    
+    container.appendChild(table);
+    
+    // Add footnote for significance levels
+    const notesMatch = latexCode.match(/\\footnotesize{(.*?)}/);
+    if (notesMatch && notesMatch[1]) {
+      const notes = document.createElement('div');
+      notes.className = 'latex-notes';
+      notes.textContent = notesMatch[1]
+        .replace(/p\$<\$0\.05/g, 'p<0.05')
+        .replace(/p\$<\$0\.01/g, 'p<0.01')
+        .replace(/p\$<\$0\.001/g, 'p<0.001');
+      container.appendChild(notes);
+    } else {
+      // Add default significance notes if not found in the LaTeX
+      const defaultNotes = document.createElement('div');
+      defaultNotes.className = 'latex-notes';
+      defaultNotes.textContent = '* p < 0.05, ** p < 0.01, *** p < 0.001';
+      container.appendChild(defaultNotes);
     }
     
     return container;
