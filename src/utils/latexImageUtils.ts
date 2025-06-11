@@ -1,3 +1,4 @@
+
 // Utility for converting LaTeX to image
 
 // Function to convert LaTeX code to an image using MathJax
@@ -8,13 +9,13 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
     container.style.position = 'absolute';
     container.style.left = '-9999px';
     container.style.top = '-9999px';
-    container.style.width = '1400px'; // Even wider for better spacing
-    container.style.padding = '60px'; // More padding
+    container.style.width = '1400px';
+    container.style.padding = '60px';
     container.style.backgroundColor = '#ffffff';
     document.body.appendChild(container);
     
     // Determine font family based on LaTeX code
-    let fontFamily = 'Times New Roman, serif'; // Default font
+    let fontFamily = 'Times New Roman, serif';
     
     if (latexCode.includes('\\usepackage{lmodern}')) {
       fontFamily = 'Latin Modern Roman, Times New Roman, serif';
@@ -23,7 +24,7 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
     } else if (latexCode.includes('\\usepackage{mathpazo}')) {
       fontFamily = 'Palatino Linotype, Palatino, serif';
     } else if (latexCode.includes('\\usepackage{newtxtext,newtxmath}')) {
-      fontFamily = 'Times New Roman, serif'; // NewTX is similar to Times but modernized
+      fontFamily = 'Times New Roman, serif';
     }
     
     // Create the visual representation directly
@@ -54,8 +55,14 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
   }
 };
 
-// Function to create academic-style table
-export const createAcademicTable = (title: string, fontFamily: string): HTMLElement => {
+// Function to create academic-style table with actual data
+export const createAcademicTable = (
+  title: string, 
+  fontFamily: string,
+  data?: any,
+  config?: any,
+  customHeaders?: any
+): HTMLElement => {
   const container = document.createElement('div');
   container.style.fontFamily = fontFamily;
   container.style.padding = '40px';
@@ -80,152 +87,173 @@ export const createAcademicTable = (title: string, fontFamily: string): HTMLElem
   table.style.fontFamily = fontFamily;
   table.style.fontSize = '14px';
   
-  // Create table structure following academic standards
+  // Create table structure
   const thead = document.createElement('thead');
   
-  // Column headers row (removed model numbers)
+  // Column headers row
   const headerRow = document.createElement('tr');
-  const variableHeader = document.createElement('th');
-  variableHeader.style.textAlign = 'left';
-  variableHeader.style.padding = '12px 16px';
-  variableHeader.style.borderTop = '2px solid #000';
-  variableHeader.style.borderBottom = '1px solid #000';
-  variableHeader.style.fontWeight = 'bold';
-  variableHeader.style.fontFamily = fontFamily;
-  variableHeader.textContent = 'Variable';
-  headerRow.appendChild(variableHeader);
   
-  ['Coefficient', 'Std. Error', 't-statistic', 'P>|t|'].forEach(header => {
+  // Use actual config if provided, otherwise use default columns
+  const visibleColumns = config?.visibleColumns || ['variable', 'coef', 'std_err', 't', 'p_value'];
+  const headers = customHeaders || {
+    variable: 'Variable',
+    coef: 'Coefficient',
+    std_err: 'Std. Error',
+    t: 't-statistic',
+    p_value: 'P>|t|',
+    ci_lower: '[0.025',
+    ci_upper: '0.975]'
+  };
+  
+  visibleColumns.forEach((col: string) => {
     const th = document.createElement('th');
-    th.style.textAlign = 'center';
-    th.style.padding = '12px 16px';
+    th.style.textAlign = col === 'variable' ? 'left' : 'center';
+    th.style.padding = '8px 12px';
     th.style.borderTop = '2px solid #000';
     th.style.borderBottom = '1px solid #000';
     th.style.fontWeight = 'bold';
     th.style.fontFamily = fontFamily;
-    th.textContent = header;
+    th.textContent = headers[col] || col;
     headerRow.appendChild(th);
   });
+  
   thead.appendChild(headerRow);
   table.appendChild(thead);
   
   // Create tbody with actual data
   const tbody = document.createElement('tbody');
   
-  // Sample data matching the actual regression results
-  const variables = [
-    { name: 'Intercept', coef: '2.345***', se: '0.456', t: '5.14', p: '<0.001' },
-    { name: 'Income', coef: '0.123*', se: '0.045', t: '2.73', p: '0.008' },
-    { name: 'Education', coef: '-0.056', se: '0.034', t: '-1.65', p: '0.102' },
-    { name: 'Age', coef: '0.089**', se: '0.028', t: '3.18', p: '0.002' },
-    { name: 'Experience', coef: '0.234***', se: '0.067', t: '3.49', p: '<0.001' }
+  // Use actual data if provided, otherwise use sample data
+  const tableData = data?.coefficients || [
+    { variable: 'Intercept', coef: 2.345, std_err: 0.456, t: 5.14, p_value: 0.0001 },
+    { variable: 'Income', coef: 0.123, std_err: 0.045, t: 2.73, p_value: 0.008 },
+    { variable: 'Education', coef: -0.056, std_err: 0.034, t: -1.65, p_value: 0.102 },
+    { variable: 'Age', coef: 0.089, std_err: 0.028, t: 3.18, p_value: 0.002 },
+    { variable: 'Experience', coef: 0.234, std_err: 0.067, t: 3.49, p_value: 0.0001 }
   ];
   
-  variables.forEach((variable, index) => {
-    const row = document.createElement('tr');
+  const decimalPlaces = config?.decimalPlaces || 3;
+  const showSignificance = config?.showSignificance !== false;
+  
+  // Helper function to format numbers
+  const formatNumber = (value: number, type: string = 'default') => {
+    if (value === null || value === undefined) return 'N/A';
     
-    // Variable name
-    const varCell = document.createElement('td');
-    varCell.style.textAlign = 'left';
-    varCell.style.padding = '10px 16px';
-    varCell.style.fontFamily = fontFamily;
-    varCell.textContent = variable.name;
-    row.appendChild(varCell);
+    if (type === 'pvalue') {
+      return value < 0.001 ? '<0.001' : value.toFixed(decimalPlaces);
+    }
+    return value.toFixed(decimalPlaces);
+  };
+  
+  // Helper function for significance stars
+  const getSignificanceStars = (pValue: number) => {
+    if (!showSignificance) return '';
+    if (pValue < 0.001) return '***';
+    if (pValue < 0.01) return '**';
+    if (pValue < 0.05) return '*';
+    return '';
+  };
+  
+  tableData.forEach((row: any) => {
+    const tableRow = document.createElement('tr');
     
-    // Coefficient with significance stars
-    const coeffCell = document.createElement('td');
-    coeffCell.style.textAlign = 'center';
-    coeffCell.style.padding = '10px 16px';
-    coeffCell.style.fontFamily = fontFamily;
-    coeffCell.innerHTML = variable.coef.replace(/\*\*\*/g, '<sup>***</sup>').replace(/\*\*/g, '<sup>**</sup>').replace(/\*/g, '<sup>*</sup>');
-    row.appendChild(coeffCell);
+    visibleColumns.forEach((columnId: string) => {
+      const cell = document.createElement('td');
+      cell.style.textAlign = columnId === 'variable' ? 'left' : 'center';
+      cell.style.padding = '6px 12px'; // Reduced padding for tighter spacing
+      cell.style.fontFamily = fontFamily;
+      
+      let cellValue = '';
+      
+      if (columnId === 'variable') {
+        cellValue = row[columnId] || '';
+      } else if (columnId === 'coef') {
+        const coef = formatNumber(row[columnId], 'coefficient');
+        const stars = getSignificanceStars(row.p_value);
+        cellValue = `${coef}${stars}`;
+      } else if (columnId === 'p_value') {
+        cellValue = formatNumber(row[columnId], 'pvalue');
+      } else {
+        cellValue = formatNumber(row[columnId], 'default');
+      }
+      
+      cell.textContent = cellValue;
+      tableRow.appendChild(cell);
+    });
     
-    // Standard error
-    const seCell = document.createElement('td');
-    seCell.style.textAlign = 'center';
-    seCell.style.padding = '10px 16px';
-    seCell.style.fontFamily = fontFamily;
-    seCell.textContent = variable.se;
-    row.appendChild(seCell);
-    
-    // t-statistic
-    const tCell = document.createElement('td');
-    tCell.style.textAlign = 'center';
-    tCell.style.padding = '10px 16px';
-    tCell.style.fontFamily = fontFamily;
-    tCell.textContent = variable.t;
-    row.appendChild(tCell);
-    
-    // P-value
-    const pCell = document.createElement('td');
-    pCell.style.textAlign = 'center';
-    pCell.style.padding = '10px 16px';
-    pCell.style.fontFamily = fontFamily;
-    pCell.textContent = variable.p;
-    row.appendChild(pCell);
-    
-    tbody.appendChild(row);
+    tbody.appendChild(tableRow);
   });
   
   // Add horizontal line before statistics
   const statsLineRow = document.createElement('tr');
-  for (let i = 0; i < 5; i++) {
+  visibleColumns.forEach(() => {
     const cell = document.createElement('td');
     cell.style.borderTop = '1px solid #000';
-    cell.style.padding = '8px 16px';
+    cell.style.padding = '4px 12px';
     cell.textContent = '';
     statsLineRow.appendChild(cell);
-  }
+  });
   tbody.appendChild(statsLineRow);
   
-  // Add model statistics
-  const stats = [
-    { label: 'Observations', value: '150' },
-    { label: 'R²', value: '0.752' },
-    { label: 'Adjusted R²', value: '0.748' },
-    { label: 'F-statistic', value: '45.23' }
-  ];
-  
-  stats.forEach(stat => {
-    const statRow = document.createElement('tr');
+  // Add model statistics if enabled
+  if (config?.includeModelStats !== false) {
+    const modelStats = data?.modelStats || {
+      observations: 150,
+      rSquared: 0.752,
+      adjRSquared: 0.748,
+      fStatistic: 45.23
+    };
     
-    const labelCell = document.createElement('td');
-    labelCell.style.textAlign = 'left';
-    labelCell.style.padding = '6px 16px';
-    labelCell.style.fontFamily = fontFamily;
-    labelCell.style.fontStyle = 'italic';
-    labelCell.textContent = stat.label;
-    statRow.appendChild(labelCell);
+    const stats = [
+      { label: 'Observations', value: data?.modelInfo?.observations?.toString() || '150' },
+      { label: 'R²', value: formatNumber(modelStats.rSquared) },
+      { label: 'Adjusted R²', value: formatNumber(modelStats.adjRSquared) },
+      { label: 'F-statistic', value: formatNumber(modelStats.fStatistic) }
+    ];
     
-    const valueCell = document.createElement('td');
-    valueCell.style.textAlign = 'center';
-    valueCell.style.padding = '6px 16px';
-    valueCell.style.fontFamily = fontFamily;
-    valueCell.textContent = stat.value;
-    statRow.appendChild(valueCell);
-    
-    // Empty cells for other columns
-    for (let i = 0; i < 3; i++) {
-      const emptyCell = document.createElement('td');
-      emptyCell.style.padding = '6px 16px';
-      emptyCell.textContent = '';
-      statRow.appendChild(emptyCell);
-    }
-    
-    tbody.appendChild(statRow);
-  });
+    stats.forEach(stat => {
+      const statRow = document.createElement('tr');
+      
+      const labelCell = document.createElement('td');
+      labelCell.style.textAlign = 'left';
+      labelCell.style.padding = '4px 12px';
+      labelCell.style.fontFamily = fontFamily;
+      labelCell.style.fontStyle = 'italic';
+      labelCell.textContent = stat.label;
+      statRow.appendChild(labelCell);
+      
+      const valueCell = document.createElement('td');
+      valueCell.style.textAlign = 'center';
+      valueCell.style.padding = '4px 12px';
+      valueCell.style.fontFamily = fontFamily;
+      valueCell.textContent = stat.value;
+      statRow.appendChild(valueCell);
+      
+      // Empty cells for other columns
+      for (let i = 0; i < visibleColumns.length - 2; i++) {
+        const emptyCell = document.createElement('td');
+        emptyCell.style.padding = '4px 12px';
+        emptyCell.textContent = '';
+        statRow.appendChild(emptyCell);
+      }
+      
+      tbody.appendChild(statRow);
+    });
+  }
   
   table.appendChild(tbody);
   container.appendChild(table);
   
   // Add footnotes
-  const notes = document.createElement('div');
-  notes.style.fontSize = '12px';
-  notes.style.marginTop = '20px';
-  notes.style.textAlign = 'left';
-  notes.style.fontFamily = fontFamily;
-  notes.innerHTML = '* <em>p</em>&lt;0.05, ** <em>p</em>&lt;0.01, *** <em>p</em>&lt;0.001';
-  container.appendChild(notes);
+  if (showSignificance) {
+    const notes = document.createElement('div');
+    notes.style.fontSize = '12px';
+    notes.style.marginTop = '16px';
+    notes.style.textAlign = 'left';
+    notes.style.fontFamily = fontFamily;
+    notes.innerHTML = '* <em>p</em>&lt;0.05, ** <em>p</em>&lt;0.01, *** <em>p</em>&lt;0.001';
+    container.appendChild(notes);
+  }
   
   return container;
 };
@@ -233,7 +261,7 @@ export const createAcademicTable = (title: string, fontFamily: string): HTMLElem
 // Function to parse LaTeX code into a formatted HTML table
 export const createVisualLatexTable = (latexCode: string, title: string): HTMLElement => {
   // Determine font family based on LaTeX code
-  let fontFamily = 'Times New Roman, serif'; // Default font
+  let fontFamily = 'Times New Roman, serif';
   
   if (latexCode.includes('\\usepackage{lmodern}')) {
     fontFamily = 'Latin Modern Roman, Times New Roman, serif';
@@ -249,7 +277,13 @@ export const createVisualLatexTable = (latexCode: string, title: string): HTMLEl
 };
 
 // Function to download the LaTeX as an image
-export const downloadLatexImage = async (latexCode: string, title: string): Promise<boolean> => {
+export const downloadLatexImage = async (
+  latexCode: string, 
+  title: string, 
+  data?: any, 
+  config?: any, 
+  customHeaders?: any
+): Promise<boolean> => {
   try {
     // Determine font family
     let fontFamily = 'Times New Roman, serif';
@@ -274,8 +308,8 @@ export const downloadLatexImage = async (latexCode: string, title: string): Prom
     container.style.left = '-9999px';
     document.body.appendChild(container);
     
-    // Add the academic table
-    const academicTable = createAcademicTable(title, fontFamily);
+    // Add the academic table with actual data and config
+    const academicTable = createAcademicTable(title, fontFamily, data, config, customHeaders);
     container.appendChild(academicTable);
     
     // Wait for rendering

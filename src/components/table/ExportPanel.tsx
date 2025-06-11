@@ -96,8 +96,8 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
       const tableOnly = extractLatexTableOnly(latexCode);
       setLatexTableOnly(tableOnly);
       
-      // Attempt to download as image
-      const success = await downloadLatexImage(latexCode, config.tableTitle);
+      // Attempt to download as image with actual data and config
+      const success = await downloadLatexImage(latexCode, config.tableTitle, data, config, customHeaders);
       
       if (success) {
         toast({
