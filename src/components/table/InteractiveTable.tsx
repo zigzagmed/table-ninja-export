@@ -2,24 +2,33 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { SortableTableHeader } from './SortableTableHeader';
+import { TableCustomizer } from './TableCustomizer';
+import { ExportPanel } from './ExportPanel';
+import { Settings, Download } from 'lucide-react';
 
 interface InteractiveTableProps {
   data: any;
   config: any;
   customHeaders: any;
   onConfigChange: (config: any) => void;
+  onHeaderChange: (column: string, newHeader: string) => void;
 }
 
 export const InteractiveTable: React.FC<InteractiveTableProps> = ({
   data,
   config,
   customHeaders,
-  onConfigChange
+  onConfigChange,
+  onHeaderChange
 }) => {
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -72,12 +81,44 @@ export const InteractiveTable: React.FC<InteractiveTableProps> = ({
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">{config.tableTitle}</CardTitle>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              Preview
-            </Button>
-            <Button variant="outline" size="sm">
-              Reset
-            </Button>
+            <Dialog open={customizeOpen} onOpenChange={setCustomizeOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Customize
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Table Customization</DialogTitle>
+                </DialogHeader>
+                <TableCustomizer 
+                  config={config}
+                  customHeaders={customHeaders}
+                  onConfigChange={onConfigChange}
+                  onHeaderChange={onHeaderChange}
+                />
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Export Options</DialogTitle>
+                </DialogHeader>
+                <ExportPanel 
+                  data={data}
+                  config={config}
+                  customHeaders={customHeaders}
+                />
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </CardHeader>

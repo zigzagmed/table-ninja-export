@@ -1,10 +1,9 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TableCustomizer } from './table/TableCustomizer';
 import { InteractiveTable } from './table/InteractiveTable';
-import { ExportPanel } from './table/ExportPanel';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { regressionData } from '../data/regressionData';
 
@@ -85,35 +84,14 @@ Kurtosis:                       2.001   Condition No.:                   3272.`}
           </TabsContent>
           
           <TabsContent value="table" className="space-y-4">
-            <div className="grid grid-cols-12 gap-6">
-              {/* Left Panel - Customization Controls */}
-              <div className="col-span-3">
-                <TableCustomizer 
-                  config={tableConfig}
-                  customHeaders={customHeaders}
-                  onConfigChange={handleConfigChange}
-                  onHeaderChange={handleHeaderChange}
-                />
-              </div>
-              
-              {/* Center Panel - Interactive Table */}
-              <div className="col-span-6">
-                <InteractiveTable 
-                  data={regressionData}
-                  config={tableConfig}
-                  customHeaders={customHeaders}
-                  onConfigChange={handleConfigChange}
-                />
-              </div>
-              
-              {/* Right Panel - Export Options */}
-              <div className="col-span-3">
-                <ExportPanel 
-                  data={regressionData}
-                  config={tableConfig}
-                  customHeaders={customHeaders}
-                />
-              </div>
+            <div className="max-w-6xl mx-auto">
+              <InteractiveTable 
+                data={regressionData}
+                config={tableConfig}
+                customHeaders={customHeaders}
+                onConfigChange={handleConfigChange}
+                onHeaderChange={handleHeaderChange}
+              />
             </div>
           </TabsContent>
           
