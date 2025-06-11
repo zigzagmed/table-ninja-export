@@ -1,3 +1,4 @@
+
 // Utility for converting LaTeX to image
 
 // Function to convert LaTeX code to an image using MathJax
@@ -8,7 +9,7 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
     container.style.position = 'absolute';
     container.style.left = '-9999px';
     container.style.top = '-9999px';
-    container.style.width = '800px';
+    container.style.width = '1000px'; // Increased from 800px for wider content
     container.style.padding = '40px';
     container.style.backgroundColor = '#ffffff';
     document.body.appendChild(container);
@@ -31,7 +32,7 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
     content.style.fontSize = '12px';
     content.style.fontFamily = fontFamily;
     content.style.color = '#000000';
-    content.style.lineHeight = '1.4';
+    content.style.lineHeight = '1.5'; // Increased from 1.4 for better readability
     content.style.whiteSpace = 'pre-wrap';
     content.style.width = '100%';
     content.textContent = latexCode;
@@ -44,7 +45,7 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
         padding: 30px;
         background-color: #ffffff;
         font-family: ${fontFamily};
-        max-width: 600px;
+        max-width: 800px; // Increased from 600px
         margin: 0 auto;
       }
       .latex-title {
@@ -60,6 +61,7 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
         margin: 0 auto;
         font-size: 11px;
         font-family: ${fontFamily};
+        table-layout: fixed;
       }
       .latex-table th {
         padding: 8px 12px;
@@ -67,17 +69,23 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
         font-weight: bold;
         border-top: 2px solid #000;
         border-bottom: 1px solid #000;
+        min-width: 120px; // Added to ensure columns have enough width
       }
       .latex-table td {
-        padding: 4px 12px;
+        padding: 6px 12px; // Increased vertical padding
         text-align: center;
         border: none;
+        min-width: 120px; // Added to ensure columns have enough width
       }
       .latex-table tbody tr:first-child td {
         border-top: 1px solid #000;
       }
       .latex-table tbody tr:last-child td {
         border-bottom: 2px solid #000;
+      }
+      .latex-table .column-variable {
+        text-align: left;
+        min-width: 150px; // Wider for variable names
       }
       .latex-notes {
         font-size: 9px;
@@ -112,7 +120,7 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
       logging: false,
       allowTaint: true,
       useCORS: true,
-      width: 800,
+      width: 1000, // Increased from 800px
       height: container.scrollHeight + 80
     });
     

@@ -1,13 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Download, FileDown, Image } from 'lucide-react';
+import { Download, FileDown, Image, Copy, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { exportToExcel, exportToWord, generateLatexCode } from '@/utils/exportUtils';
 import { loadHtml2Canvas, downloadLatexImage } from '@/utils/latexImageUtils';
@@ -25,8 +24,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
   const [isExporting, setIsExporting] = useState(false);
   const [latexDialogOpen, setLatexDialogOpen] = useState(false);
   const [latexCode, setLatexCode] = useState('');
+  const [latexTableOnly, setLatexTableOnly] = useState('');
   const [latexImage, setLatexImage] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
   
   // Load html2canvas when component mounts
@@ -36,6 +37,46 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
         console.error('Failed to load html2canvas:', error);
       });
   }, []);
+
+  // Reset copy button state
+  useEffect(() => {
+    if (isCopied) {
+      const timer = setTimeout(() => {
+        setIsCopied(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isCopied]);
+
+  const extractLatexTableOnly = (fullLatexCode: string): string => {
+    // Extract just the table environment
+    const tableStart = fullLatexCode.indexOf('\\begin{table}');
+    const tableEnd = fullLatexCode.indexOf('\\end{table}') + '\\end{table}'.length;
+    
+    if (tableStart !== -1 && tableEnd !== -1) {
+      return fullLatexCode.substring(tableStart, tableEnd);
+    }
+    return fullLatexCode; // Fallback to full code if extraction fails
+  };
+
+  const copyLatexCode = () => {
+    navigator.clipboard.writeText(latexTableOnly)
+      .then(() => {
+        setIsCopied(true);
+        toast({
+          title: "Copied!",
+          description: "LaTeX code copied to clipboard",
+        });
+      })
+      .catch(err => {
+        console.error('Failed to copy LaTeX code:', err);
+        toast({
+          title: "Copy Failed",
+          description: "Could not copy to clipboard",
+          variant: "destructive",
+        });
+      });
+  };
 
   const exportToLatexImage = async () => {
     setIsExporting(true);
@@ -49,6 +90,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
       }
       
       setLatexCode(latexCode);
+      
+      // Extract just the table environment for copy functionality
+      const tableOnly = extractLatexTableOnly(latexCode);
+      setLatexTableOnly(tableOnly);
       
       // Attempt to download as image
       const success = await downloadLatexImage(latexCode, config.tableTitle);
@@ -320,9 +365,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
           <DialogHeader>
             <DialogTitle>LaTeX Table Exported</DialogTitle>
             <DialogDescription>
-              {latexImage ? 
-                'Your LaTeX table has been rendered as an image and downloaded. You can also copy the LaTeX code below.' :
-                'The image has been downloaded. You can also copy the LaTeX code below if needed.'}
+              Your LaTeX table has been rendered as an image and downloaded. You can copy just the table code below.
             </DialogDescription>
           </DialogHeader>
           
@@ -332,9 +375,32 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
             </div>
           )}
           
-          <div className="bg-muted/30 rounded p-3 overflow-x-auto">
-            <pre className="text-xs font-mono whitespace-pre-wrap">{latexCode}</pre>
+          <div className="bg-muted/30 rounded-md p-4">
+            <div className="flex justify-between items-center mb-2">
+              <h4 className="text-sm font-medium">LaTeX Table Code</h4>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={copyLatexCode} 
+                className="h-8"
+              >
+                {isCopied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                {isCopied ? 'Copied!' : 'Copy Code'}
+              </Button>
+            </div>
+            <div className="bg-background border rounded-md p-3 overflow-x-auto max-h-[200px]">
+              <pre className="text-xs font-mono whitespace-pre-wrap">{latexTableOnly}</pre>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              This is just the table code, ready to be used in your LaTeX document.
+            </p>
           </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLatexDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

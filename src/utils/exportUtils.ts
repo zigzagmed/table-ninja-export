@@ -384,7 +384,7 @@ ${fontPackage}\\usepackage[margin=1in]{geometry}
 \\begin{table}[htbp]
 \\centering
 \\caption{${config.tableTitle}}
-\\begin{tabular}{l*{${columnCount}}{c}}
+\\begin{tabular}{p{3cm}*{${columnCount}}{c}}
 \\toprule
 `;
 
@@ -402,7 +402,7 @@ ${fontPackage}\\usepackage[margin=1in]{geometry}
     });
     latexCode += columnNames.join(' & ') + ' \\\\\n\\midrule\n';
 
-    // Add data rows with coefficients and t-statistics
+    // Add data rows with coefficients and t-statistics, with increased spacing
     data.coefficients.forEach((row: any, rowIndex: number) => {
       // Coefficient row
       const coeffRow = [row.variable || ''];
