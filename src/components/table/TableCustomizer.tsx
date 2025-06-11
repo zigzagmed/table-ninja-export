@@ -181,31 +181,6 @@ export const TableCustomizer: React.FC<TableCustomizerProps> = ({
 
         <Separator />
 
-        {/* Custom Headers */}
-        <div className="space-y-3">
-          <Label className="text-sm font-medium">Custom Headers</Label>
-          {config.visibleColumns.map((columnId: string) => {
-            const column = availableColumns.find(col => col.id === columnId);
-            if (!column) return null;
-            
-            return (
-              <div key={columnId} className="space-y-1">
-                <Label htmlFor={`header-${columnId}`} className="text-xs text-muted-foreground">
-                  {column.label}
-                </Label>
-                <Input
-                  id={`header-${columnId}`}
-                  value={customHeaders[columnId] || column.label}
-                  onChange={(e) => onHeaderChange(columnId, e.target.value)}
-                  className="text-sm"
-                />
-              </div>
-            );
-          })}
-        </div>
-
-        <Separator />
-
         {/* Templates */}
         <div className="space-y-2">
           <Label className="text-sm font-medium">Templates</Label>
