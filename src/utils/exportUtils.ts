@@ -1,4 +1,3 @@
-
 // Utility functions for exporting data in various formats
 
 import * as XLSX from 'xlsx';
@@ -12,6 +11,7 @@ export interface ExportConfig {
   includeModelStats: boolean;
   columnOrder: string[];
   visibleColumns: string[];
+  latexFont?: string; // Add font option for LaTeX
 }
 
 export interface ModelInfo {
@@ -354,12 +354,31 @@ export const generateLatexCode = (data: ExportData, config: ExportConfig, custom
     const dataColumns = visibleColumnOrder.filter(col => col !== 'variable');
     const columnCount = dataColumns.length;
 
+    // Add font package based on selected font
+    let fontPackage = '';
+    switch (config.latexFont) {
+      case 'lmodern':
+        fontPackage = '\\usepackage{lmodern}  % Latin Modern (enhanced Computer Modern)\n\\usepackage[T1]{fontenc}\n';
+        break;
+      case 'times':
+        fontPackage = '\\usepackage{mathptmx}  % Times Roman font\n';
+        break;
+      case 'palatino':
+        fontPackage = '\\usepackage{mathpazo}  % Palatino font\n';
+        break;
+      case 'newtx':
+        fontPackage = '\\usepackage{newtxtext,newtxmath}  % Modern look\n';
+        break;
+      default:
+        fontPackage = '\\usepackage{lmodern}  % Default: Latin Modern\n\\usepackage[T1]{fontenc}\n';
+    }
+
     // Generate professional LaTeX table code following academic standards
     let latexCode = `\\documentclass[12pt]{article}
 \\usepackage{booktabs}
 \\usepackage{array}
 \\usepackage{amsmath}
-\\usepackage[margin=1in]{geometry}
+${fontPackage}\\usepackage[margin=1in]{geometry}
 \\begin{document}
 
 \\begin{table}[htbp]

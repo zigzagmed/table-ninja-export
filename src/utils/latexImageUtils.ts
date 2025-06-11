@@ -1,4 +1,3 @@
-
 // Utility for converting LaTeX to image
 
 // Function to convert LaTeX code to an image using MathJax
@@ -14,10 +13,23 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
     container.style.backgroundColor = '#ffffff';
     document.body.appendChild(container);
     
+    // Determine font family based on LaTeX code
+    let fontFamily = 'Times New Roman, serif'; // Default font
+    
+    if (latexCode.includes('\\usepackage{lmodern}')) {
+      fontFamily = 'Latin Modern Roman, Times New Roman, serif';
+    } else if (latexCode.includes('\\usepackage{mathptmx}')) {
+      fontFamily = 'Times New Roman, serif';
+    } else if (latexCode.includes('\\usepackage{mathpazo}')) {
+      fontFamily = 'Palatino Linotype, Palatino, serif';
+    } else if (latexCode.includes('\\usepackage{newtxtext,newtxmath}')) {
+      fontFamily = 'Times New Roman, serif'; // NewTX is similar to Times but modernized
+    }
+    
     // Create the LaTeX content wrapped in a styled div
     const content = document.createElement('div');
     content.style.fontSize = '12px';
-    content.style.fontFamily = 'Times New Roman, serif';
+    content.style.fontFamily = fontFamily;
     content.style.color = '#000000';
     content.style.lineHeight = '1.4';
     content.style.whiteSpace = 'pre-wrap';
@@ -25,13 +37,13 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
     content.textContent = latexCode;
     container.appendChild(content);
     
-    // Add professional academic styling
+    // Add professional academic styling with font consideration
     const style = document.createElement('style');
     style.textContent = `
       .latex-container {
         padding: 30px;
         background-color: #ffffff;
-        font-family: 'Times New Roman', serif;
+        font-family: ${fontFamily};
         max-width: 600px;
         margin: 0 auto;
       }
@@ -47,7 +59,7 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
         width: 100%;
         margin: 0 auto;
         font-size: 11px;
-        font-family: 'Times New Roman', serif;
+        font-family: ${fontFamily};
       }
       .latex-table th {
         padding: 8px 12px;
@@ -72,7 +84,7 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
         margin-top: 15px;
         text-align: left;
         line-height: 1.4;
-        font-family: 'Times New Roman', serif;
+        font-family: ${fontFamily};
       }
       .parenthesis {
         font-size: 10px;
@@ -120,6 +132,22 @@ export const createVisualLatexTable = (latexCode: string, title: string): HTMLEl
   // Create container
   const container = document.createElement('div');
   container.className = 'latex-container';
+  
+  // Determine font family based on LaTeX code
+  let fontFamily = 'Times New Roman, serif'; // Default font
+  
+  if (latexCode.includes('\\usepackage{lmodern}')) {
+    fontFamily = 'Latin Modern Roman, Times New Roman, serif';
+  } else if (latexCode.includes('\\usepackage{mathptmx}')) {
+    fontFamily = 'Times New Roman, serif';
+  } else if (latexCode.includes('\\usepackage{mathpazo}')) {
+    fontFamily = 'Palatino Linotype, Palatino, serif';
+  } else if (latexCode.includes('\\usepackage{newtxtext,newtxmath}')) {
+    fontFamily = 'Times New Roman, serif'; // NewTX is similar to Times but modernized
+  }
+  
+  // Apply the detected font
+  container.style.fontFamily = fontFamily;
   
   // Add title
   const titleElem = document.createElement('div');

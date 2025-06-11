@@ -21,6 +21,7 @@ interface ExportPanelProps {
 export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHeaders }) => {
   const [exportFormat, setExportFormat] = useState('excel');
   const [exportStyle, setExportStyle] = useState('standard');
+  const [latexFont, setLatexFont] = useState('lmodern');
   const [isExporting, setIsExporting] = useState(false);
   const [latexDialogOpen, setLatexDialogOpen] = useState(false);
   const [latexCode, setLatexCode] = useState('');
@@ -40,8 +41,8 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
     setIsExporting(true);
     
     try {
-      // Generate LaTeX code first
-      const latexCode = generateLatexCode(data, config, customHeaders);
+      // Generate LaTeX code with selected font
+      const latexCode = generateLatexCode(data, {...config, latexFont}, customHeaders);
       
       if (!latexCode) {
         throw new Error('Failed to generate LaTeX code');
@@ -181,6 +182,27 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
             </Select>
           </div>
 
+          {/* LaTeX Font (only show when LaTeX format is selected) */}
+          {exportFormat === 'latex' && (
+            <div className="space-y-2">
+              <Label htmlFor="latex-font">LaTeX Font</Label>
+              <Select value={latexFont} onValueChange={setLatexFont}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="lmodern">Latin Modern</SelectItem>
+                  <SelectItem value="times">Times Roman</SelectItem>
+                  <SelectItem value="palatino">Palatino</SelectItem>
+                  <SelectItem value="newtx">NewTX (Modern)</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="text-xs text-muted-foreground mt-1">
+                Select font package for LaTeX document
+              </div>
+            </div>
+          )}
+
           <Separator />
 
           {/* Export Preview */}
@@ -201,7 +223,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
                       <div className="font-medium mb-2 text-sm">{config.tableTitle}</div>
                       <div className="border rounded-md overflow-hidden">
                         <div className="p-2 bg-muted/30 text-center text-xs">
-                          LaTeX Table Preview
+                          LaTeX Table Preview ({latexFont === 'lmodern' ? 'Latin Modern' : 
+                                              latexFont === 'times' ? 'Times Roman' : 
+                                              latexFont === 'palatino' ? 'Palatino' : 
+                                              'NewTX'} font)
                         </div>
                         <div className="p-3 bg-white text-xs overflow-hidden">
                           <div className="text-center mb-2 font-bold">
@@ -257,6 +282,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
               <div>Format: {exportFormat === 'excel' ? 'Excel (.xlsx)' : 
                          exportFormat === 'word' ? 'Word (.docx)' : 
                          'LaTeX Table Image (.png)'}</div>
+              {exportFormat === 'latex' && <div>Font: {latexFont === 'lmodern' ? 'Latin Modern' : 
+                                                     latexFont === 'times' ? 'Times Roman' : 
+                                                     latexFont === 'palatino' ? 'Palatino' : 
+                                                     'NewTX'}</div>}
               {config.includeModelStats && <div>+ Model Statistics</div>}
               {config.showSignificance && <div>+ Significance Stars</div>}
             </div>
