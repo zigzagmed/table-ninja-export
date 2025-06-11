@@ -159,7 +159,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
             width: { size: 100 / visibleColumnOrder.length, type: WidthType.PERCENTAGE },
             borders: {
               top: { style: BorderStyle.SINGLE, size: 6 },
-              bottom: { style: BorderStyle.SINGLE, size: 6 },
+              bottom: { style: BorderStyle.DOUBLE, size: 8 }, // Double line below headers
               left: { style: BorderStyle.SINGLE, size: 6 },
               right: { style: BorderStyle.SINGLE, size: 6 },
             },
