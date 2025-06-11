@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -142,7 +141,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
         config.visibleColumns.includes(col)
       );
 
-      // Create publication-ready table with proper borders and styling
+      // Create header row with bold text and bottom border only
       const headerRow = new TableRow({
         children: visibleColumnOrder.map(col => 
           new TableCell({
@@ -158,26 +157,26 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
             })],
             width: { size: 100 / visibleColumnOrder.length, type: WidthType.PERCENTAGE },
             borders: {
-              top: { style: BorderStyle.SINGLE, size: 6 },
-              bottom: { style: BorderStyle.DOUBLE, size: 8 }, // Double line below headers
-              left: { style: BorderStyle.SINGLE, size: 6 },
-              right: { style: BorderStyle.SINGLE, size: 6 },
+              top: { style: BorderStyle.NONE, size: 0 },
+              bottom: { style: BorderStyle.SINGLE, size: 6 },
+              left: { style: BorderStyle.NONE, size: 0 },
+              right: { style: BorderStyle.NONE, size: 0 },
             },
             margins: { top: 100, bottom: 100, left: 100, right: 100 },
           })
         ),
       });
 
-      const dataRows = data.coefficients.map((row: any) => 
-        new TableRow({
+      // Create data rows with no borders except for the last row
+      const dataRows = data.coefficients.map((row: any, index: number) => {
+        const isLastRow = index === data.coefficients.length - 1;
+        
+        return new TableRow({
           children: visibleColumnOrder.map((columnId: string) => {
             let cellValue = '';
-            let alignment = AlignmentType.CENTER;
             
             if (columnId === 'variable') {
               cellValue = row[columnId];
-              // Use CENTER for variable names as well to avoid type error
-              alignment = AlignmentType.CENTER;
             } else if (columnId === 'coef') {
               cellValue = formatNumber(row[columnId], 'coefficient') + getSignificanceStars(row.p_value);
             } else if (columnId === 'p_value') {
@@ -189,7 +188,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
             return new TableCell({
               children: [new Paragraph({
                 text: cellValue,
-                alignment: alignment,
+                alignment: AlignmentType.CENTER,
                 spacing: { after: 100 },
                 run: {
                   font: "Times New Roman",
@@ -198,28 +197,28 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
               })],
               width: { size: 100 / visibleColumnOrder.length, type: WidthType.PERCENTAGE },
               borders: {
-                top: { style: BorderStyle.SINGLE, size: 3 },
-                bottom: { style: BorderStyle.SINGLE, size: 3 },
-                left: { style: BorderStyle.SINGLE, size: 3 },
-                right: { style: BorderStyle.SINGLE, size: 3 },
+                top: { style: BorderStyle.NONE, size: 0 },
+                bottom: isLastRow ? { style: BorderStyle.SINGLE, size: 6 } : { style: BorderStyle.NONE, size: 0 },
+                left: { style: BorderStyle.NONE, size: 0 },
+                right: { style: BorderStyle.NONE, size: 0 },
               },
               margins: { top: 100, bottom: 100, left: 100, right: 100 },
             });
           }),
-        })
-      );
+        });
+      });
 
-      // Create table with professional styling
+      // Create table with minimal borders
       const table = new DocxTable({
         rows: [headerRow, ...dataRows],
         width: { size: 100, type: WidthType.PERCENTAGE },
         borders: {
-          top: { style: BorderStyle.DOUBLE, size: 8 },
-          bottom: { style: BorderStyle.DOUBLE, size: 8 },
-          left: { style: BorderStyle.SINGLE, size: 6 },
-          right: { style: BorderStyle.SINGLE, size: 6 },
-          insideHorizontal: { style: BorderStyle.SINGLE, size: 3 },
-          insideVertical: { style: BorderStyle.SINGLE, size: 3 },
+          top: { style: BorderStyle.NONE, size: 0 },
+          bottom: { style: BorderStyle.NONE, size: 0 },
+          left: { style: BorderStyle.NONE, size: 0 },
+          right: { style: BorderStyle.NONE, size: 0 },
+          insideHorizontal: { style: BorderStyle.NONE, size: 0 },
+          insideVertical: { style: BorderStyle.NONE, size: 0 },
         },
         layout: "autofit",
       });
@@ -336,7 +335,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
 
       toast({
         title: "Export Successful",
-        description: "Publication-ready Word document has been downloaded with professional formatting.",
+        description: "Publication-ready Word document has been downloaded with clean formatting.",
       });
     } catch (error) {
       toast({
