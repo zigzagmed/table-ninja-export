@@ -176,7 +176,8 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
             
             if (columnId === 'variable') {
               cellValue = row[columnId];
-              alignment = AlignmentType.LEFT;
+              // Use CENTER for variable names as well to avoid type error
+              alignment = AlignmentType.CENTER;
             } else if (columnId === 'coef') {
               cellValue = formatNumber(row[columnId], 'coefficient') + getSignificanceStars(row.p_value);
             } else if (columnId === 'p_value') {
