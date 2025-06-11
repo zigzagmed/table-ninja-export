@@ -348,11 +348,101 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
     }
   };
 
+  const exportToLatex = () => {
+    setIsExporting(true);
+    
+    try {
+      const visibleColumnOrder = config.columnOrder.filter((col: string) => 
+        config.visibleColumns.includes(col)
+      );
+
+      // Generate LaTeX table code
+      let latexCode = `\\begin{table}[htbp]
+\\centering
+\\caption{${config.tableTitle}}
+\\label{tab:regression}
+\\begin{tabular}{${'l' + 'c'.repeat(visibleColumnOrder.length - 1)}}
+\\toprule
+`;
+
+      // Add header row
+      const headers = visibleColumnOrder.map(col => customHeaders[col]);
+      latexCode += headers.join(' & ') + ' \\\\\n\\midrule\n';
+
+      // Add data rows
+      data.coefficients.forEach((row: any, index: number) => {
+        const rowData = visibleColumnOrder.map((columnId: string) => {
+          if (columnId === 'variable') {
+            return row[columnId];
+          } else if (columnId === 'coef') {
+            const coef = formatNumber(row[columnId], 'coefficient');
+            const stars = getSignificanceStars(row.p_value);
+            return `${coef}${stars}`;
+          } else if (columnId === 'p_value') {
+            return formatNumber(row[columnId], 'pvalue');
+          } else {
+            return formatNumber(row[columnId]);
+          }
+        });
+        
+        latexCode += rowData.join(' & ') + ' \\\\\n';
+      });
+
+      latexCode += '\\bottomrule\n\\end{tabular}\n';
+
+      // Add significance note if enabled
+      if (config.showSignificance) {
+        latexCode += '\\begin{tablenotes}\n';
+        latexCode += '\\small\n';
+        latexCode += '\\item Note: * p$<$0.05, ** p$<$0.01, *** p$<$0.001\n';
+        latexCode += '\\end{tablenotes}\n';
+      }
+
+      latexCode += '\\end{table}';
+
+      // Add model statistics if enabled
+      if (config.includeModelStats) {
+        latexCode += '\n\n% Model Statistics:\n';
+        latexCode += `% Model: ${data.modelInfo.model}\n`;
+        latexCode += `% Dependent Variable: ${data.modelInfo.dependentVariable}\n`;
+        latexCode += `% Observations: ${data.modelInfo.observations}\n`;
+        latexCode += `% R-squared: ${formatNumber(data.modelStats.rSquared)}\n`;
+        latexCode += `% Adj. R-squared: ${formatNumber(data.modelStats.adjRSquared)}\n`;
+        latexCode += `% F-statistic: ${formatNumber(data.modelStats.fStatistic)}\n`;
+      }
+
+      // Create and download file
+      const blob = new Blob([latexCode], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const timestamp = new Date().toISOString().slice(0, 10);
+      a.download = `${config.tableTitle.replace(/\s+/g, '_')}_${timestamp}.tex`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export Successful",
+        description: "LaTeX table code has been downloaded. Requires booktabs and threeparttable packages.",
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "There was an error exporting to LaTeX.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleExport = () => {
     if (exportFormat === 'excel') {
       exportToExcel();
     } else if (exportFormat === 'word') {
       exportToWord();
+    } else if (exportFormat === 'latex') {
+      exportToLatex();
     }
   };
 
@@ -375,6 +465,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
             <SelectContent>
               <SelectItem value="excel">Excel (.xlsx)</SelectItem>
               <SelectItem value="word">Word (.docx)</SelectItem>
+              <SelectItem value="latex">LaTeX (.tex)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -421,7 +512,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
             disabled={isExporting}
           >
             <Download className="h-4 w-4 mr-2" />
-            {isExporting ? 'Exporting...' : `Export ${exportFormat === 'excel' ? 'Excel' : 'Word'}`}
+            {isExporting ? 'Exporting...' : `Export ${exportFormat === 'excel' ? 'Excel' : exportFormat === 'word' ? 'Word' : 'LaTeX'}`}
           </Button>
         </div>
       </CardContent>
