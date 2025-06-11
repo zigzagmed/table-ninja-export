@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -85,118 +84,113 @@ export const TableCustomizer: React.FC<TableCustomizerProps> = ({
   };
 
   return (
-    <Card className="h-fit">
-      <CardHeader>
-        <CardTitle className="text-lg">Table Customization</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Table Title */}
+    <div className="space-y-6">
+      {/* Table Title */}
+      <div className="space-y-2">
+        <Label htmlFor="table-title">Table Title</Label>
+        <Input
+          id="table-title"
+          value={config.tableTitle}
+          onChange={(e) => onConfigChange({ tableTitle: e.target.value })}
+          placeholder="Enter table title"
+        />
+      </div>
+
+      <Separator />
+
+      {/* Column Visibility Dropdown */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium">Visible Columns</Label>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              <div className="flex items-center gap-2">
+                <Columns className="h-4 w-4" />
+                <span>{config.visibleColumns.length} of {availableColumns.length} columns</span>
+              </div>
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56">
+            <DropdownMenuLabel>Select Columns</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {availableColumns.map((column) => (
+              <DropdownMenuCheckboxItem
+                key={column.id}
+                checked={config.visibleColumns.includes(column.id)}
+                onCheckedChange={(checked) => handleColumnVisibility(column.id, checked)}
+              >
+                {column.label}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <Separator />
+
+      {/* Formatting Options */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium">Formatting</Label>
+        
         <div className="space-y-2">
-          <Label htmlFor="table-title">Table Title</Label>
-          <Input
-            id="table-title"
-            value={config.tableTitle}
-            onChange={(e) => onConfigChange({ tableTitle: e.target.value })}
-            placeholder="Enter table title"
+          <Label htmlFor="decimal-places" className="text-sm">Decimal Places</Label>
+          <Select 
+            value={config.decimalPlaces.toString()} 
+            onValueChange={(value) => onConfigChange({ decimalPlaces: parseInt(value) })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2">2</SelectItem>
+              <SelectItem value="3">3</SelectItem>
+              <SelectItem value="4">4</SelectItem>
+              <SelectItem value="5">5</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="show-significance" className="text-sm">
+            Show Significance Stars
+          </Label>
+          <Switch
+            id="show-significance"
+            checked={config.showSignificance}
+            onCheckedChange={(checked) => onConfigChange({ showSignificance: checked })}
           />
         </div>
 
-        <Separator />
-
-        {/* Column Visibility Dropdown */}
-        <div className="space-y-3">
-          <Label className="text-sm font-medium">Visible Columns</Label>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full justify-between">
-                <div className="flex items-center gap-2">
-                  <Columns className="h-4 w-4" />
-                  <span>{config.visibleColumns.length} of {availableColumns.length} columns</span>
-                </div>
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56">
-              <DropdownMenuLabel>Select Columns</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {availableColumns.map((column) => (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  checked={config.visibleColumns.includes(column.id)}
-                  onCheckedChange={(checked) => handleColumnVisibility(column.id, checked)}
-                >
-                  {column.label}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="include-stats" className="text-sm">
+            Include Model Statistics
+          </Label>
+          <Switch
+            id="include-stats"
+            checked={config.includeModelStats}
+            onCheckedChange={(checked) => onConfigChange({ includeModelStats: checked })}
+          />
         </div>
+      </div>
 
-        <Separator />
+      <Separator />
 
-        {/* Formatting Options */}
-        <div className="space-y-3">
-          <Label className="text-sm font-medium">Formatting</Label>
-          
-          <div className="space-y-2">
-            <Label htmlFor="decimal-places" className="text-sm">Decimal Places</Label>
-            <Select 
-              value={config.decimalPlaces.toString()} 
-              onValueChange={(value) => onConfigChange({ decimalPlaces: parseInt(value) })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="2">2</SelectItem>
-                <SelectItem value="3">3</SelectItem>
-                <SelectItem value="4">4</SelectItem>
-                <SelectItem value="5">5</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <Label htmlFor="show-significance" className="text-sm">
-              Show Significance Stars
-            </Label>
-            <Switch
-              id="show-significance"
-              checked={config.showSignificance}
-              onCheckedChange={(checked) => onConfigChange({ showSignificance: checked })}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <Label htmlFor="include-stats" className="text-sm">
-              Include Model Statistics
-            </Label>
-            <Switch
-              id="include-stats"
-              checked={config.includeModelStats}
-              onCheckedChange={(checked) => onConfigChange({ includeModelStats: checked })}
-            />
-          </div>
+      {/* Templates */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">Templates</Label>
+        <div className="grid grid-cols-1 gap-2">
+          <Button variant="outline" size="sm" onClick={() => loadTemplate('apa')}>
+            APA Style
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => loadTemplate('academic')}>
+            Academic Journal
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => loadTemplate('minimal')}>
+            Minimal
+          </Button>
         </div>
-
-        <Separator />
-
-        {/* Templates */}
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Templates</Label>
-          <div className="grid grid-cols-1 gap-2">
-            <Button variant="outline" size="sm" onClick={() => loadTemplate('apa')}>
-              APA Style
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => loadTemplate('academic')}>
-              Academic Journal
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => loadTemplate('minimal')}>
-              Minimal
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
