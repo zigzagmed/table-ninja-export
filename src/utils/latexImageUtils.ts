@@ -9,8 +9,8 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
     container.style.position = 'absolute';
     container.style.left = '-9999px';
     container.style.top = '-9999px';
-    container.style.width = '1000px'; // Increased from 800px for wider content
-    container.style.padding = '40px';
+    container.style.width = '1200px'; // Increased from 1000px for even wider content
+    container.style.padding = '50px'; // Increased padding
     container.style.backgroundColor = '#ffffff';
     document.body.appendChild(container);
     
@@ -29,10 +29,10 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
     
     // Create the LaTeX content wrapped in a styled div
     const content = document.createElement('div');
-    content.style.fontSize = '12px';
+    content.style.fontSize = '14px'; // Increased from 12px
     content.style.fontFamily = fontFamily;
     content.style.color = '#000000';
-    content.style.lineHeight = '1.5'; // Increased from 1.4 for better readability
+    content.style.lineHeight = '1.6'; // Increased from 1.5 for better readability
     content.style.whiteSpace = 'pre-wrap';
     content.style.width = '100%';
     content.textContent = latexCode;
@@ -42,40 +42,40 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
     const style = document.createElement('style');
     style.textContent = `
       .latex-container {
-        padding: 30px;
+        padding: 40px; // Increased padding
         background-color: #ffffff;
         font-family: ${fontFamily};
-        max-width: 800px; // Increased from 600px
+        max-width: 1000px; // Increased from 800px
         margin: 0 auto;
       }
       .latex-title {
-        font-size: 14px;
+        font-size: 16px; // Increased from 14px
         font-weight: bold;
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 25px; // Increased margin
         line-height: 1.3;
       }
       .latex-table {
         border-collapse: collapse;
         width: 100%;
         margin: 0 auto;
-        font-size: 11px;
+        font-size: 13px; // Increased from 11px
         font-family: ${fontFamily};
         table-layout: fixed;
       }
       .latex-table th {
-        padding: 8px 12px;
+        padding: 12px 16px; // Increased padding
         text-align: center;
         font-weight: bold;
         border-top: 2px solid #000;
         border-bottom: 1px solid #000;
-        min-width: 120px; // Added to ensure columns have enough width
+        min-width: 140px; // Increased from 120px
       }
       .latex-table td {
-        padding: 6px 12px; // Increased vertical padding
+        padding: 10px 16px; // Increased vertical and horizontal padding
         text-align: center;
         border: none;
-        min-width: 120px; // Added to ensure columns have enough width
+        min-width: 140px; // Increased from 120px
       }
       .latex-table tbody tr:first-child td {
         border-top: 1px solid #000;
@@ -85,27 +85,27 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
       }
       .latex-table .column-variable {
         text-align: left;
-        min-width: 150px; // Wider for variable names
+        min-width: 180px; // Increased from 150px for variable names
       }
       .latex-notes {
-        font-size: 9px;
-        margin-top: 15px;
+        font-size: 11px; // Increased from 9px
+        margin-top: 20px; // Increased margin
         text-align: left;
         line-height: 1.4;
         font-family: ${fontFamily};
       }
       .parenthesis {
-        font-size: 10px;
+        font-size: 12px; // Increased from 10px
         color: #444;
         font-style: italic;
       }
       .significance-stars {
         font-weight: normal;
-        font-size: 9px;
+        font-size: 11px; // Increased from 9px
         vertical-align: super;
       }
       sup {
-        font-size: 8px;
+        font-size: 10px; // Increased from 8px
         font-weight: normal;
       }
     `;
@@ -120,8 +120,8 @@ export const renderLatexToImage = async (latexCode: string, title: string): Prom
       logging: false,
       allowTaint: true,
       useCORS: true,
-      width: 1000, // Increased from 800px
-      height: container.scrollHeight + 80
+      width: 1200, // Increased from 1000px
+      height: container.scrollHeight + 100 // Increased height buffer
     });
     
     // Clean up
@@ -266,7 +266,7 @@ export const createVisualLatexTable = (latexCode: string, title: string): HTMLEl
       // Add spacing row except after last variable
       if (index < sampleData.length - 1) {
         const spacingRow = document.createElement('tr');
-        spacingRow.style.height = '0.5em';
+        spacingRow.style.height = '1em'; // Increased spacing
         for (let i = 0; i < 4; i++) {
           const emptyCell = document.createElement('td');
           emptyCell.textContent = '';

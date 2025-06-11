@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -180,6 +181,28 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
     }
   };
 
+  // Get font name for display
+  const getFontDisplayName = (fontValue: string) => {
+    switch (fontValue) {
+      case 'lmodern': return 'Latin Modern';
+      case 'times': return 'Times Roman';
+      case 'palatino': return 'Palatino';
+      case 'newtx': return 'NewTX';
+      default: return 'Latin Modern';
+    }
+  };
+
+  // Get font family for CSS
+  const getFontFamily = (fontValue: string) => {
+    switch (fontValue) {
+      case 'lmodern': return 'Latin Modern Roman, Times New Roman, serif';
+      case 'times': return 'Times New Roman, serif';
+      case 'palatino': return 'Palatino Linotype, Palatino, serif';
+      case 'newtx': return 'Times New Roman, serif';
+      default: return 'Latin Modern Roman, Times New Roman, serif';
+    }
+  };
+
   return (
     <>
       <Card className="h-fit">
@@ -268,20 +291,17 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
                       <div className="font-medium mb-2 text-sm">{config.tableTitle}</div>
                       <div className="border rounded-md overflow-hidden">
                         <div className="p-2 bg-muted/30 text-center text-xs">
-                          LaTeX Table Preview ({latexFont === 'lmodern' ? 'Latin Modern' : 
-                                              latexFont === 'times' ? 'Times Roman' : 
-                                              latexFont === 'palatino' ? 'Palatino' : 
-                                              'NewTX'} font)
+                          LaTeX Table Preview ({getFontDisplayName(latexFont)} font)
                         </div>
-                        <div className="p-3 bg-white text-xs overflow-hidden">
-                          <div className="text-center mb-2 font-bold">
+                        <div className="p-4 bg-white text-xs overflow-hidden" style={{ fontFamily: getFontFamily(latexFont) }}>
+                          <div className="text-center mb-3 font-bold text-sm">
                             {config.tableTitle}
                           </div>
-                          <table className="w-full border-collapse">
+                          <table className="w-full border-collapse" style={{ fontFamily: getFontFamily(latexFont) }}>
                             <thead>
                               <tr>
                                 {config.visibleColumns.map((col: string) => (
-                                  <th key={col} className="border-b-2 border-black p-1 text-center">
+                                  <th key={col} className="border-b-2 border-black p-2 text-center font-bold">
                                     {customHeaders[col]}
                                   </th>
                                 ))}
@@ -291,7 +311,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
                               {data.coefficients.slice(0, 3).map((row: any, idx: number) => (
                                 <tr key={idx}>
                                   {config.visibleColumns.map((col: string) => (
-                                    <td key={`${idx}-${col}`} className="p-1 text-center">
+                                    <td key={`${idx}-${col}`} className="p-2 text-center">
                                       {col === 'variable' ? row[col] : '0.00'}
                                     </td>
                                   ))}
@@ -299,20 +319,20 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
                               ))}
                               {data.coefficients.length > 3 && (
                                 <tr>
-                                  <td colSpan={config.visibleColumns.length} className="text-center p-1">...</td>
+                                  <td colSpan={config.visibleColumns.length} className="text-center p-2">...</td>
                                 </tr>
                               )}
                             </tbody>
                           </table>
                           {config.showSignificance && (
-                            <div className="text-xs italic mt-2 text-left">
+                            <div className="text-xs italic mt-3 text-left" style={{ fontFamily: getFontFamily(latexFont) }}>
                               Note: * p&lt;0.05, ** p&lt;0.01, *** p&lt;0.001
                             </div>
                           )}
                         </div>
                       </div>
                       <div className="text-xs text-muted-foreground mt-2">
-                        The actual downloaded image will have proper LaTeX formatting.
+                        The actual downloaded image will have proper LaTeX formatting with wider spacing.
                       </div>
                     </div>
                   </PopoverContent>
@@ -327,10 +347,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
               <div>Format: {exportFormat === 'excel' ? 'Excel (.xlsx)' : 
                          exportFormat === 'word' ? 'Word (.docx)' : 
                          'LaTeX Table Image (.png)'}</div>
-              {exportFormat === 'latex' && <div>Font: {latexFont === 'lmodern' ? 'Latin Modern' : 
-                                                     latexFont === 'times' ? 'Times Roman' : 
-                                                     latexFont === 'palatino' ? 'Palatino' : 
-                                                     'NewTX'}</div>}
+              {exportFormat === 'latex' && <div>Font: {getFontDisplayName(latexFont)}</div>}
               {config.includeModelStats && <div>+ Model Statistics</div>}
               {config.showSignificance && <div>+ Significance Stars</div>}
             </div>
