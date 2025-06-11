@@ -1,3 +1,4 @@
+
 // Utility functions for exporting data in various formats
 
 import * as XLSX from 'xlsx';
@@ -49,9 +50,9 @@ export const formatNumber = (value: number, type: string = 'default', decimals: 
 
 export const getSignificanceStars = (pValue: number, showSignificance: boolean) => {
   if (!showSignificance) return '';
-  if (pValue < 0.001) return '***';
-  if (pValue < 0.01) return '**';
-  if (pValue < 0.05) return '*';
+  if (pValue < 0.001) return '^{***}';
+  if (pValue < 0.01) return '^{**}';
+  if (pValue < 0.05) return '^{*}';
   return '';
 };
 
@@ -349,68 +350,112 @@ export const generateLatexCode = (data: ExportData, config: ExportConfig, custom
       config.visibleColumns.includes(col)
     );
 
-    // Generate LaTeX table code similar to the example image
+    // Count non-variable columns for the table specification
+    const dataColumns = visibleColumnOrder.filter(col => col !== 'variable');
+    const columnCount = dataColumns.length;
+
+    // Generate professional LaTeX table code following academic standards
     let latexCode = `\\documentclass[12pt]{article}
 \\usepackage{booktabs}
 \\usepackage{array}
 \\usepackage{amsmath}
 \\usepackage[margin=1in]{geometry}
 \\begin{document}
+
 \\begin{table}[htbp]
 \\centering
 \\caption{${config.tableTitle}}
-\\begin{tabular}{${'l' + 'c'.repeat(visibleColumnOrder.length - 1)}}
+\\begin{tabular}{l*{${columnCount}}{c}}
 \\toprule
 `;
 
-    // Add header row
-    const headers = visibleColumnOrder.map(col => {
-      // Modify the header format to match the example image
-      if (col === 'variable') {
-        return '';  // Variable column might not need a header
-      } else {
-        return `(${visibleColumnOrder.indexOf(col)})\\\\${customHeaders[col]}`;
-      }
+    // Add header row with model numbers and column names
+    const headers = [''];
+    dataColumns.forEach((col, index) => {
+      headers.push(`(${index + 1})`);
     });
-    latexCode += headers.join(' & ') + ' \\\\\n\\midrule\n';
+    latexCode += headers.join(' & ') + ' \\\\\n';
 
-    // Add data rows with t-statistics in parentheses
-    data.coefficients.forEach((row: any) => {
-      const rowData = visibleColumnOrder.map((columnId: string) => {
-        if (columnId === 'variable') {
-          return row[columnId];
-        } else if (columnId === 'coef') {
+    // Add column names row
+    const columnNames = [''];
+    dataColumns.forEach(col => {
+      columnNames.push(customHeaders[col]);
+    });
+    latexCode += columnNames.join(' & ') + ' \\\\\n\\midrule\n';
+
+    // Add data rows with coefficients and t-statistics
+    data.coefficients.forEach((row: any, rowIndex: number) => {
+      // Coefficient row
+      const coeffRow = [row.variable || ''];
+      dataColumns.forEach(columnId => {
+        if (columnId === 'coef') {
           const coef = formatNumber(row[columnId], 'coefficient', config.decimalPlaces);
           const stars = getSignificanceStars(row.p_value, config.showSignificance);
-          // Include t-statistic in parentheses below
-          const tStat = row.t ? `(${formatNumber(row.t, 'default', 2)})` : '';
-          return `${coef}${stars} \\\\ ${tStat}`;
+          coeffRow.push(`${coef}${stars}`);
         } else if (columnId === 'p_value') {
-          return formatNumber(row[columnId], 'pvalue', config.decimalPlaces);
+          coeffRow.push(formatNumber(row[columnId], 'pvalue', config.decimalPlaces));
         } else {
-          return formatNumber(row[columnId], 'default', config.decimalPlaces);
+          coeffRow.push(formatNumber(row[columnId], 'default', config.decimalPlaces));
         }
       });
-      
-      latexCode += rowData.join(' & ') + ' \\\\\n';
+      latexCode += coeffRow.join(' & ') + ' \\\\\n';
+
+      // t-statistic row (in parentheses)
+      if (row.t !== undefined) {
+        const tStatRow = [''];
+        dataColumns.forEach(columnId => {
+          if (columnId === 'coef') {
+            tStatRow.push(`(${formatNumber(row.t, 'default', 2)})`);
+          } else {
+            tStatRow.push(''); // Empty for other columns
+          }
+        });
+        latexCode += tStatRow.join(' & ') + ' \\\\\n';
+      }
+
+      // Add empty row for spacing between variables (except after last variable)
+      if (rowIndex < data.coefficients.length - 1) {
+        const emptyRow = new Array(dataColumns.length + 1).fill('');
+        latexCode += emptyRow.join(' & ') + ' \\\\\n';
+      }
     });
 
-    // Add observations row
     latexCode += '\\midrule\n';
-    latexCode += `Observations & ${data.modelInfo.observations} \\\\\n`;
+
+    // Add model statistics if enabled
+    if (config.includeModelStats) {
+      const statsRow = ['Observations'];
+      dataColumns.forEach(() => {
+        statsRow.push(data.modelInfo.observations.toString());
+      });
+      latexCode += statsRow.join(' & ') + ' \\\\\n';
+
+      const r2Row = ['R$^2$'];
+      dataColumns.forEach(() => {
+        r2Row.push(formatNumber(data.modelStats.rSquared, 'default', config.decimalPlaces));
+      });
+      latexCode += r2Row.join(' & ') + ' \\\\\n';
+
+      const adjR2Row = ['Adjusted R$^2$'];
+      dataColumns.forEach(() => {
+        adjR2Row.push(formatNumber(data.modelStats.adjRSquared, 'default', config.decimalPlaces));
+      });
+      latexCode += adjR2Row.join(' & ') + ' \\\\\n';
+    }
 
     latexCode += '\\bottomrule\n';
     latexCode += '\\end{tabular}\n';
 
-    // Add detailed footnotes like in the example
+    // Add professional footnotes
     if (config.showSignificance) {
-      latexCode += '\\\\[0.5em]\n';
-      latexCode += '\\footnotesize{$t$ statistics in parentheses}\n';
-      latexCode += '\\footnotesize{$^{*}$ p$<$0.05, $^{**}$ p$<$0.01, $^{***}$ p$<$0.001}\n';
-      latexCode += '\\footnotesize{Note: Robust standard errors in parentheses}\n';
+      latexCode += '\\\\[1em]\n';
+      latexCode += '\\footnotesize\n';
+      latexCode += '\\flushleft\n';
+      latexCode += '$t$ statistics in parentheses\\\\\n';
+      latexCode += '$^{*}$ $p<0.05$, $^{**}$ $p<0.01$, $^{***}$ $p<0.001$\n';
     }
 
-    latexCode += '\\end{table}\n\\end{document}';
+    latexCode += '\\end{table}\n\n\\end{document}';
     
     return latexCode;
   } catch (error) {
