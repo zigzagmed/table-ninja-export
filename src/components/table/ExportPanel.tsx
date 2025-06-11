@@ -348,7 +348,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
     }
   };
 
-  const exportToLatex = () => {
+  const exportToLatex = async () => {
     setIsExporting(true);
     
     try {
@@ -356,11 +356,16 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
         config.visibleColumns.includes(col)
       );
 
-      // Generate LaTeX table code
-      let latexCode = `\\begin{table}[htbp]
+      // Generate LaTeX table code for rendering
+      let latexCode = `\\documentclass[12pt]{article}
+\\usepackage{booktabs}
+\\usepackage{array}
+\\usepackage{amsmath}
+\\usepackage[margin=0.5in]{geometry}
+\\begin{document}
+\\begin{table}[h]
 \\centering
 \\caption{${config.tableTitle}}
-\\label{tab:regression}
 \\begin{tabular}{${'l' + 'c'.repeat(visibleColumnOrder.length - 1)}}
 \\toprule
 `;
@@ -370,7 +375,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
       latexCode += headers.join(' & ') + ' \\\\\n\\midrule\n';
 
       // Add data rows
-      data.coefficients.forEach((row: any, index: number) => {
+      data.coefficients.forEach((row: any) => {
         const rowData = visibleColumnOrder.map((columnId: string) => {
           if (columnId === 'variable') {
             return row[columnId];
@@ -392,43 +397,59 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
 
       // Add significance note if enabled
       if (config.showSignificance) {
-        latexCode += '\\begin{tablenotes}\n';
-        latexCode += '\\small\n';
-        latexCode += '\\item Note: * p$<$0.05, ** p$<$0.01, *** p$<$0.001\n';
-        latexCode += '\\end{tablenotes}\n';
+        latexCode += '\\\\[0.5em]\n';
+        latexCode += '\\footnotesize{Note: * p$<$0.05, ** p$<$0.01, *** p$<$0.001}\n';
       }
 
-      latexCode += '\\end{table}';
+      latexCode += '\\end{table}\n\\end{document}';
 
-      // Add model statistics if enabled
-      if (config.includeModelStats) {
-        latexCode += '\n\n% Model Statistics:\n';
-        latexCode += `% Model: ${data.modelInfo.model}\n`;
-        latexCode += `% Dependent Variable: ${data.modelInfo.dependentVariable}\n`;
-        latexCode += `% Observations: ${data.modelInfo.observations}\n`;
-        latexCode += `% R-squared: ${formatNumber(data.modelStats.rSquared)}\n`;
-        latexCode += `% Adj. R-squared: ${formatNumber(data.modelStats.adjRSquared)}\n`;
-        latexCode += `% F-statistic: ${formatNumber(data.modelStats.fStatistic)}\n`;
-      }
+      // Use QuickLaTeX API to render LaTeX to image
+      const formData = new FormData();
+      formData.append('formula', latexCode);
+      formData.append('fsize', '17px');
+      formData.append('fcolor', '000000');
+      formData.append('mode', '0');
+      formData.append('out', '1');
+      formData.append('remhost', 'quicklatex.com');
 
-      // Create and download file
-      const blob = new Blob([latexCode], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const timestamp = new Date().toISOString().slice(0, 10);
-      a.download = `${config.tableTitle.replace(/\s+/g, '_')}_${timestamp}.tex`;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "Export Successful",
-        description: "LaTeX table code has been downloaded. Requires booktabs and threeparttable packages.",
+      const response = await fetch('https://www.quicklatex.com/latex3.f', {
+        method: 'POST',
+        body: formData
       });
+
+      const responseText = await response.text();
+      
+      // Parse QuickLaTeX response
+      const lines = responseText.split('\n');
+      if (lines[0].trim() === '0') {
+        // Success - get image URL
+        const imageUrl = lines[1].trim();
+        
+        // Download the image
+        const imageResponse = await fetch(imageUrl);
+        const imageBlob = await imageResponse.blob();
+        
+        // Create download link
+        const url = URL.createObjectURL(imageBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        const timestamp = new Date().toISOString().slice(0, 10);
+        a.download = `${config.tableTitle.replace(/\s+/g, '_')}_${timestamp}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        toast({
+          title: "Export Successful",
+          description: "LaTeX table has been rendered and downloaded as an image.",
+        });
+      } else {
+        throw new Error('LaTeX rendering failed');
+      }
     } catch (error) {
+      console.error('LaTeX export error:', error);
       toast({
         title: "Export Failed",
-        description: "There was an error exporting to LaTeX.",
+        description: "There was an error rendering the LaTeX table to image. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -465,7 +486,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
             <SelectContent>
               <SelectItem value="excel">Excel (.xlsx)</SelectItem>
               <SelectItem value="word">Word (.docx)</SelectItem>
-              <SelectItem value="latex">LaTeX (.tex)</SelectItem>
+              <SelectItem value="latex">LaTeX Image (.png)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -512,7 +533,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
             disabled={isExporting}
           >
             <Download className="h-4 w-4 mr-2" />
-            {isExporting ? 'Exporting...' : `Export ${exportFormat === 'excel' ? 'Excel' : exportFormat === 'word' ? 'Word' : 'LaTeX'}`}
+            {isExporting ? 'Exporting...' : `Export ${exportFormat === 'excel' ? 'Excel' : exportFormat === 'word' ? 'Word' : 'LaTeX Image'}`}
           </Button>
         </div>
       </CardContent>
