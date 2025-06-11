@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Download, FileDown, Table, Copy, Eye } from 'lucide-react';
+import { Download, FileDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { Document, Packer, Table as DocxTable, TableRow, TableCell, Paragraph, WidthType, AlignmentType, BorderStyle, HeadingLevel } from 'docx';
@@ -348,94 +348,6 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
     }
   };
 
-  const handlePreview = () => {
-    // Create a preview modal/window with the formatted table
-    const visibleColumnOrder = config.columnOrder.filter((col: string) => 
-      config.visibleColumns.includes(col)
-    );
-    
-    let previewContent = `${config.tableTitle}\n\n`;
-    previewContent += visibleColumnOrder.map(col => customHeaders[col]).join('\t') + '\n';
-    previewContent += data.coefficients.map((row: any) => 
-      visibleColumnOrder.map((columnId: string) => {
-        if (columnId === 'variable') return row[columnId];
-        if (columnId === 'coef') {
-          return formatNumber(row[columnId], 'coefficient') + getSignificanceStars(row.p_value);
-        }
-        if (columnId === 'p_value') return formatNumber(row[columnId], 'pvalue');
-        return formatNumber(row[columnId]);
-      }).join('\t')
-    ).join('\n');
-    
-    if (config.showSignificance) {
-      previewContent += '\n\nNote: * p<0.05, ** p<0.01, *** p<0.001';
-    }
-    
-    // Open preview in new window
-    const previewWindow = window.open('', '_blank');
-    if (previewWindow) {
-      previewWindow.document.write(`
-        <html>
-          <head><title>Table Preview</title></head>
-          <body style="font-family: monospace; padding: 20px;">
-            <pre>${previewContent}</pre>
-          </body>
-        </html>
-      `);
-    }
-  };
-
-  const handleCopyHTML = async () => {
-    const visibleColumnOrder = config.columnOrder.filter((col: string) => 
-      config.visibleColumns.includes(col)
-    );
-    
-    let htmlContent = `<table border="1" style="border-collapse: collapse;">
-      <caption>${config.tableTitle}</caption>
-      <thead>
-        <tr>
-          ${visibleColumnOrder.map(col => `<th>${customHeaders[col]}</th>`).join('')}
-        </tr>
-      </thead>
-      <tbody>
-        ${data.coefficients.map((row: any) => 
-          `<tr>
-            ${visibleColumnOrder.map((columnId: string) => {
-              let cellValue = '';
-              if (columnId === 'variable') cellValue = row[columnId];
-              else if (columnId === 'coef') {
-                cellValue = formatNumber(row[columnId], 'coefficient') + getSignificanceStars(row.p_value);
-              } else if (columnId === 'p_value') {
-                cellValue = formatNumber(row[columnId], 'pvalue');
-              } else {
-                cellValue = formatNumber(row[columnId]);
-              }
-              return `<td>${cellValue}</td>`;
-            }).join('')}
-          </tr>`
-        ).join('')}
-      </tbody>
-    </table>`;
-    
-    if (config.showSignificance) {
-      htmlContent += '<p><em>Note: * p&lt;0.05, ** p&lt;0.01, *** p&lt;0.001</em></p>';
-    }
-    
-    try {
-      await navigator.clipboard.writeText(htmlContent);
-      toast({
-        title: "HTML Copied",
-        description: "Table HTML has been copied to clipboard.",
-      });
-    } catch (error) {
-      toast({
-        title: "Copy Failed",
-        description: "Could not copy HTML to clipboard.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleExport = () => {
     if (exportFormat === 'excel') {
       exportToExcel();
@@ -511,17 +423,6 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
             <Download className="h-4 w-4 mr-2" />
             {isExporting ? 'Exporting...' : `Export ${exportFormat === 'excel' ? 'Excel' : 'Word'}`}
           </Button>
-          
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" size="sm" onClick={handlePreview}>
-              <Eye className="h-4 w-4 mr-1" />
-              Preview
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleCopyHTML}>
-              <Copy className="h-4 w-4 mr-1" />
-              Copy HTML
-            </Button>
-          </div>
         </div>
       </CardContent>
     </Card>
