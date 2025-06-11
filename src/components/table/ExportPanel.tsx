@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { Download, FileDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { Document, Packer, Table as DocxTable, TableRow, TableCell, Paragraph, WidthType, AlignmentType, BorderStyle, HeadingLevel } from 'docx';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface ExportPanelProps {
   data: any;
@@ -19,6 +21,8 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
   const [exportFormat, setExportFormat] = useState('excel');
   const [exportStyle, setExportStyle] = useState('standard');
   const [isExporting, setIsExporting] = useState(false);
+  const [latexDialogOpen, setLatexDialogOpen] = useState(false);
+  const [latexCode, setLatexCode] = useState('');
   const { toast } = useToast();
 
   const formatNumber = (value: number, type: string = 'default') => {
@@ -356,7 +360,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
         config.visibleColumns.includes(col)
       );
 
-      // Generate LaTeX table code for rendering
+      // Generate LaTeX table code
       let latexCode = `\\documentclass[12pt]{article}
 \\usepackage{booktabs}
 \\usepackage{array}
@@ -403,53 +407,31 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
 
       latexCode += '\\end{table}\n\\end{document}';
 
-      // Use QuickLaTeX API to render LaTeX to image
-      const formData = new FormData();
-      formData.append('formula', latexCode);
-      formData.append('fsize', '17px');
-      formData.append('fcolor', '000000');
-      formData.append('mode', '0');
-      formData.append('out', '1');
-      formData.append('remhost', 'quicklatex.com');
-
-      const response = await fetch('https://www.quicklatex.com/latex3.f', {
-        method: 'POST',
-        body: formData
-      });
-
-      const responseText = await response.text();
+      // Set the LaTeX code in state for dialog display
+      setLatexCode(latexCode);
       
-      // Parse QuickLaTeX response
-      const lines = responseText.split('\n');
-      if (lines[0].trim() === '0') {
-        // Success - get image URL
-        const imageUrl = lines[1].trim();
-        
-        // Download the image
-        const imageResponse = await fetch(imageUrl);
-        const imageBlob = await imageResponse.blob();
-        
-        // Create download link
-        const url = URL.createObjectURL(imageBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        const timestamp = new Date().toISOString().slice(0, 10);
-        a.download = `${config.tableTitle.replace(/\s+/g, '_')}_${timestamp}.png`;
-        a.click();
-        URL.revokeObjectURL(url);
+      // Show the dialog with the LaTeX code
+      setLatexDialogOpen(true);
 
-        toast({
-          title: "Export Successful",
-          description: "LaTeX table has been rendered and downloaded as an image.",
-        });
-      } else {
-        throw new Error('LaTeX rendering failed');
-      }
+      // Also create a downloadable file with the LaTeX code
+      const blob = new Blob([latexCode], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const timestamp = new Date().toISOString().slice(0, 10);
+      a.download = `${config.tableTitle.replace(/\s+/g, '_')}_${timestamp}.tex`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "LaTeX Export Successful",
+        description: "LaTeX code has been generated and downloaded as a .tex file.",
+      });
     } catch (error) {
       console.error('LaTeX export error:', error);
       toast({
         title: "Export Failed",
-        description: "There was an error rendering the LaTeX table to image. Please try again.",
+        description: "There was an error generating the LaTeX code.",
         variant: "destructive",
       });
     } finally {
@@ -468,75 +450,93 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
   };
 
   return (
-    <Card className="h-fit">
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <FileDown className="h-5 w-5" />
-          Export Options
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Export Format */}
-        <div className="space-y-2">
-          <Label htmlFor="export-format">Export Format</Label>
-          <Select value={exportFormat} onValueChange={setExportFormat}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="excel">Excel (.xlsx)</SelectItem>
-              <SelectItem value="word">Word (.docx)</SelectItem>
-              <SelectItem value="latex">LaTeX Image (.png)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Export Style */}
-        <div className="space-y-2">
-          <Label htmlFor="export-style">Style Template</Label>
-          <Select value={exportStyle} onValueChange={setExportStyle}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="standard">Standard</SelectItem>
-              <SelectItem value="apa">APA Style</SelectItem>
-              <SelectItem value="academic">Academic</SelectItem>
-              <SelectItem value="publication">Publication Ready</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <Separator />
-
-        {/* Export Preview */}
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Export Preview</Label>
-          <div className="p-3 bg-muted/30 rounded text-xs font-mono space-y-1">
-            <div>Title: {config.tableTitle}</div>
-            <div>Columns: {config.visibleColumns.length}</div>
-            <div>Rows: {data.coefficients.length}</div>
-            <div>Format: {exportFormat.toUpperCase()}</div>
-            {config.includeModelStats && <div>+ Model Statistics</div>}
-            {config.showSignificance && <div>+ Significance Stars</div>}
+    <>
+      <Card className="h-fit">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <FileDown className="h-5 w-5" />
+            Export Options
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Export Format */}
+          <div className="space-y-2">
+            <Label htmlFor="export-format">Export Format</Label>
+            <Select value={exportFormat} onValueChange={setExportFormat}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="excel">Excel (.xlsx)</SelectItem>
+                <SelectItem value="word">Word (.docx)</SelectItem>
+                <SelectItem value="latex">LaTeX (.tex)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
 
-        <Separator />
+          {/* Export Style */}
+          <div className="space-y-2">
+            <Label htmlFor="export-style">Style Template</Label>
+            <Select value={exportStyle} onValueChange={setExportStyle}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="standard">Standard</SelectItem>
+                <SelectItem value="apa">APA Style</SelectItem>
+                <SelectItem value="academic">Academic</SelectItem>
+                <SelectItem value="publication">Publication Ready</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Export Actions */}
-        <div className="space-y-3">
-          <Button 
-            onClick={handleExport} 
-            className="w-full" 
-            size="lg"
-            disabled={isExporting}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            {isExporting ? 'Exporting...' : `Export ${exportFormat === 'excel' ? 'Excel' : exportFormat === 'word' ? 'Word' : 'LaTeX Image'}`}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+          <Separator />
+
+          {/* Export Preview */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Export Preview</Label>
+            <div className="p-3 bg-muted/30 rounded text-xs font-mono space-y-1">
+              <div>Title: {config.tableTitle}</div>
+              <div>Columns: {config.visibleColumns.length}</div>
+              <div>Rows: {data.coefficients.length}</div>
+              <div>Format: {exportFormat.toUpperCase()}</div>
+              {config.includeModelStats && <div>+ Model Statistics</div>}
+              {config.showSignificance && <div>+ Significance Stars</div>}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Export Actions */}
+          <div className="space-y-3">
+            <Button 
+              onClick={handleExport} 
+              className="w-full" 
+              size="lg"
+              disabled={isExporting}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              {isExporting ? 'Exporting...' : `Export ${exportFormat === 'excel' ? 'Excel' : exportFormat === 'word' ? 'Word' : 'LaTeX'}`}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* LaTeX Code Dialog */}
+      <Dialog open={latexDialogOpen} onOpenChange={setLatexDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>LaTeX Code for Table</DialogTitle>
+            <DialogDescription>
+              The LaTeX code has been downloaded as a .tex file. You can copy this code or view it below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-muted/30 rounded p-3 overflow-x-auto">
+            <pre className="text-xs font-mono whitespace-pre-wrap">{latexCode}</pre>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
+
