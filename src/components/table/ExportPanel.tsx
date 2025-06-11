@@ -1,15 +1,16 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Download, FileDown } from 'lucide-react';
+import { Download, FileDown, Image } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import * as XLSX from 'xlsx';
-import { Document, Packer, Table as DocxTable, TableRow, TableCell, Paragraph, WidthType, AlignmentType, BorderStyle, HeadingLevel } from 'docx';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { exportToExcel, exportToWord, generateLatexCode } from '@/utils/exportUtils';
+import { loadHtml2Canvas, downloadLatexImage } from '@/utils/latexImageUtils';
 
 interface ExportPanelProps {
   data: any;
@@ -23,417 +24,68 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
   const [isExporting, setIsExporting] = useState(false);
   const [latexDialogOpen, setLatexDialogOpen] = useState(false);
   const [latexCode, setLatexCode] = useState('');
+  const [latexImage, setLatexImage] = useState<string | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const { toast } = useToast();
+  
+  // Load html2canvas when component mounts
+  useEffect(() => {
+    loadHtml2Canvas()
+      .catch(error => {
+        console.error('Failed to load html2canvas:', error);
+      });
+  }, []);
 
-  const formatNumber = (value: number, type: string = 'default') => {
-    if (value === null || value === undefined) return 'N/A';
-    
-    const decimals = config.decimalPlaces;
-    
-    switch (type) {
-      case 'pvalue':
-        return value < 0.001 ? '<0.001' : value.toFixed(decimals);
-      case 'coefficient':
-        return value.toFixed(decimals);
-      default:
-        return value.toFixed(decimals);
-    }
-  };
-
-  const getSignificanceStars = (pValue: number) => {
-    if (!config.showSignificance) return '';
-    if (pValue < 0.001) return '***';
-    if (pValue < 0.01) return '**';
-    if (pValue < 0.05) return '*';
-    return '';
-  };
-
-  const exportToExcel = () => {
+  const exportToLatexImage = async () => {
     setIsExporting(true);
     
     try {
-      const visibleColumnOrder = config.columnOrder.filter((col: string) => 
-        config.visibleColumns.includes(col)
-      );
-
-      // Create workbook with multiple sheets
-      const wb = XLSX.utils.book_new();
+      // Generate LaTeX code first
+      const latexCode = generateLatexCode(data, config, customHeaders);
       
-      // Main results table with publication formatting
-      const headers = visibleColumnOrder.map((col: string) => customHeaders[col]);
-      const rows = data.coefficients.map((row: any) => 
-        visibleColumnOrder.map((columnId: string) => {
-          if (columnId === 'variable') return row[columnId];
-          if (columnId === 'coef') {
-            const coef = formatNumber(row[columnId], 'coefficient');
-            const stars = getSignificanceStars(row.p_value);
-            return `${coef}${stars}`;
-          }
-          if (columnId === 'p_value') return formatNumber(row[columnId], 'pvalue');
-          return formatNumber(row[columnId]);
-        })
-      );
-
-      // Add significance note if applicable
-      const tableData = [
-        [config.tableTitle],
-        [],
-        headers,
-        ...rows
-      ];
-
-      if (config.showSignificance) {
-        tableData.push([]);
-        tableData.push(['Note: * p<0.05, ** p<0.01, *** p<0.001']);
-      }
-
-      const ws = XLSX.utils.aoa_to_sheet(tableData);
-      
-      // Style the worksheet for publication
-      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-      
-      // Set column widths
-      ws['!cols'] = visibleColumnOrder.map(() => ({ wch: 12 }));
-      
-      XLSX.utils.book_append_sheet(wb, ws, 'Regression Results');
-      
-      // Add model statistics sheet if enabled
-      if (config.includeModelStats) {
-        const statsData = [
-          ['Model Statistics'],
-          [],
-          ['Statistic', 'Value'],
-          ['Model', data.modelInfo.model],
-          ['Dependent Variable', data.modelInfo.dependentVariable],
-          ['No. Observations', data.modelInfo.observations],
-          ['R-squared', formatNumber(data.modelStats.rSquared)],
-          ['Adj. R-squared', formatNumber(data.modelStats.adjRSquared)],
-          ['F-statistic', formatNumber(data.modelStats.fStatistic)],
-          ['AIC', formatNumber(data.modelStats.aic)],
-          ['BIC', formatNumber(data.modelStats.bic)],
-        ];
-        
-        const statsWs = XLSX.utils.aoa_to_sheet(statsData);
-        statsWs['!cols'] = [{ wch: 20 }, { wch: 15 }];
-        XLSX.utils.book_append_sheet(wb, statsWs, 'Model Statistics');
+      if (!latexCode) {
+        throw new Error('Failed to generate LaTeX code');
       }
       
-      // Save file with timestamp
-      const timestamp = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `${config.tableTitle.replace(/\s+/g, '_')}_${timestamp}.xlsx`);
-      
-      toast({
-        title: "Export Successful",
-        description: "Excel file has been downloaded with publication formatting.",
-      });
-    } catch (error) {
-      toast({
-        title: "Export Failed",
-        description: "There was an error exporting to Excel.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const exportToWord = async () => {
-    setIsExporting(true);
-    
-    try {
-      const visibleColumnOrder = config.columnOrder.filter((col: string) => 
-        config.visibleColumns.includes(col)
-      );
-
-      // Create header row with bold text and bottom border only
-      const headerRow = new TableRow({
-        children: visibleColumnOrder.map(col => 
-          new TableCell({
-            children: [new Paragraph({
-              text: customHeaders[col],
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 100 },
-              run: {
-                font: "Times New Roman",
-                size: 24, // 12pt font
-                bold: true,
-              }
-            })],
-            width: { size: 100 / visibleColumnOrder.length, type: WidthType.PERCENTAGE },
-            borders: {
-              top: { style: BorderStyle.NONE, size: 0 },
-              bottom: { style: BorderStyle.SINGLE, size: 6 },
-              left: { style: BorderStyle.NONE, size: 0 },
-              right: { style: BorderStyle.NONE, size: 0 },
-            },
-            margins: { top: 100, bottom: 100, left: 100, right: 100 },
-          })
-        ),
-      });
-
-      // Create data rows with no borders except for the last row
-      const dataRows = data.coefficients.map((row: any, index: number) => {
-        const isLastRow = index === data.coefficients.length - 1;
-        
-        return new TableRow({
-          children: visibleColumnOrder.map((columnId: string) => {
-            let cellValue = '';
-            
-            if (columnId === 'variable') {
-              cellValue = row[columnId];
-            } else if (columnId === 'coef') {
-              cellValue = formatNumber(row[columnId], 'coefficient') + getSignificanceStars(row.p_value);
-            } else if (columnId === 'p_value') {
-              cellValue = formatNumber(row[columnId], 'pvalue');
-            } else {
-              cellValue = formatNumber(row[columnId]);
-            }
-            
-            return new TableCell({
-              children: [new Paragraph({
-                text: cellValue,
-                alignment: AlignmentType.CENTER,
-                spacing: { after: 100 },
-                run: {
-                  font: "Times New Roman",
-                  size: 22, // 11pt font for data
-                }
-              })],
-              width: { size: 100 / visibleColumnOrder.length, type: WidthType.PERCENTAGE },
-              borders: {
-                top: { style: BorderStyle.NONE, size: 0 },
-                bottom: isLastRow ? { style: BorderStyle.SINGLE, size: 6 } : { style: BorderStyle.NONE, size: 0 },
-                left: { style: BorderStyle.NONE, size: 0 },
-                right: { style: BorderStyle.NONE, size: 0 },
-              },
-              margins: { top: 100, bottom: 100, left: 100, right: 100 },
-            });
-          }),
-        });
-      });
-
-      // Create table with minimal borders
-      const table = new DocxTable({
-        rows: [headerRow, ...dataRows],
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        borders: {
-          top: { style: BorderStyle.NONE, size: 0 },
-          bottom: { style: BorderStyle.NONE, size: 0 },
-          left: { style: BorderStyle.NONE, size: 0 },
-          right: { style: BorderStyle.NONE, size: 0 },
-          insideHorizontal: { style: BorderStyle.NONE, size: 0 },
-          insideVertical: { style: BorderStyle.NONE, size: 0 },
-        },
-        layout: "autofit",
-      });
-
-      // Build document sections with proper academic formatting
-      const sections = [
-        new Paragraph({
-          text: config.tableTitle,
-          heading: HeadingLevel.HEADING_1,
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 400 },
-          run: {
-            font: "Times New Roman",
-            size: 28, // 14pt font
-            bold: true,
-          }
-        }),
-        new Paragraph({ 
-          text: "",
-          spacing: { after: 200 }
-        }), // Spacing
-        table,
-      ];
-
-      // Add significance note if enabled with proper formatting
-      if (config.showSignificance) {
-        sections.push(
-          new Paragraph({ 
-            text: "",
-            spacing: { after: 200 }
-          }), // Spacing
-          new Paragraph({
-            text: "Note: * p<0.05, ** p<0.01, *** p<0.001",
-            alignment: AlignmentType.LEFT,
-            spacing: { after: 200 },
-            run: {
-              font: "Times New Roman",
-              size: 20, // 10pt font for notes
-              italics: true,
-            }
-          })
-        );
-      }
-
-      // Add model statistics if enabled with proper formatting
-      if (config.includeModelStats) {
-        sections.push(
-          new Paragraph({ 
-            text: "",
-            spacing: { after: 200 }
-          }),
-          new Paragraph({
-            text: "Model Statistics",
-            heading: HeadingLevel.HEADING_2,
-            spacing: { after: 200 },
-            run: {
-              font: "Times New Roman",
-              size: 24, // 12pt font
-              bold: true,
-            }
-          }),
-          new Paragraph({
-            text: `Model: ${data.modelInfo.model}; Dependent Variable: ${data.modelInfo.dependentVariable}; N = ${data.modelInfo.observations}; R² = ${formatNumber(data.modelStats.rSquared)}; Adj. R² = ${formatNumber(data.modelStats.adjRSquared)}; F = ${formatNumber(data.modelStats.fStatistic)}`,
-            spacing: { after: 200 },
-            run: {
-              font: "Times New Roman",
-              size: 22, // 11pt font
-            }
-          })
-        );
-      }
-
-      const doc = new Document({
-        styles: {
-          default: {
-            document: {
-              run: {
-                font: "Times New Roman",
-                size: 22,
-              },
-              paragraph: {
-                spacing: {
-                  line: 360, // 1.5 line spacing
-                  lineRule: "auto",
-                }
-              }
-            }
-          }
-        },
-        sections: [{
-          properties: {
-            page: {
-              margin: {
-                top: 1440, // 1 inch margins
-                bottom: 1440,
-                left: 1440,
-                right: 1440,
-              }
-            }
-          },
-          children: sections,
-        }],
-      });
-
-      // Generate and download
-      const blob = await Packer.toBlob(doc);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const timestamp = new Date().toISOString().slice(0, 10);
-      a.download = `${config.tableTitle.replace(/\s+/g, '_')}_${timestamp}.docx`;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "Export Successful",
-        description: "Publication-ready Word document has been downloaded with clean formatting.",
-      });
-    } catch (error) {
-      toast({
-        title: "Export Failed",
-        description: "There was an error exporting to Word.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const exportToLatex = async () => {
-    setIsExporting(true);
-    
-    try {
-      const visibleColumnOrder = config.columnOrder.filter((col: string) => 
-        config.visibleColumns.includes(col)
-      );
-
-      // Generate LaTeX table code
-      let latexCode = `\\documentclass[12pt]{article}
-\\usepackage{booktabs}
-\\usepackage{array}
-\\usepackage{amsmath}
-\\usepackage[margin=0.5in]{geometry}
-\\begin{document}
-\\begin{table}[h]
-\\centering
-\\caption{${config.tableTitle}}
-\\begin{tabular}{${'l' + 'c'.repeat(visibleColumnOrder.length - 1)}}
-\\toprule
-`;
-
-      // Add header row
-      const headers = visibleColumnOrder.map(col => customHeaders[col]);
-      latexCode += headers.join(' & ') + ' \\\\\n\\midrule\n';
-
-      // Add data rows
-      data.coefficients.forEach((row: any) => {
-        const rowData = visibleColumnOrder.map((columnId: string) => {
-          if (columnId === 'variable') {
-            return row[columnId];
-          } else if (columnId === 'coef') {
-            const coef = formatNumber(row[columnId], 'coefficient');
-            const stars = getSignificanceStars(row.p_value);
-            return `${coef}${stars}`;
-          } else if (columnId === 'p_value') {
-            return formatNumber(row[columnId], 'pvalue');
-          } else {
-            return formatNumber(row[columnId]);
-          }
-        });
-        
-        latexCode += rowData.join(' & ') + ' \\\\\n';
-      });
-
-      latexCode += '\\bottomrule\n\\end{tabular}\n';
-
-      // Add significance note if enabled
-      if (config.showSignificance) {
-        latexCode += '\\\\[0.5em]\n';
-        latexCode += '\\footnotesize{Note: * p$<$0.05, ** p$<$0.01, *** p$<$0.001}\n';
-      }
-
-      latexCode += '\\end{table}\n\\end{document}';
-
-      // Set the LaTeX code in state for dialog display
       setLatexCode(latexCode);
       
-      // Show the dialog with the LaTeX code
-      setLatexDialogOpen(true);
-
-      // Also create a downloadable file with the LaTeX code
-      const blob = new Blob([latexCode], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const timestamp = new Date().toISOString().slice(0, 10);
-      a.download = `${config.tableTitle.replace(/\s+/g, '_')}_${timestamp}.tex`;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "LaTeX Export Successful",
-        description: "LaTeX code has been generated and downloaded as a .tex file.",
-      });
+      // Attempt to download as image
+      const success = await downloadLatexImage(latexCode, config.tableTitle);
+      
+      if (success) {
+        toast({
+          title: "Export Successful",
+          description: "LaTeX table image has been downloaded as PNG.",
+        });
+        
+        // Show dialog with LaTeX code as well
+        setLatexDialogOpen(true);
+      } else {
+        throw new Error('Failed to generate image');
+      }
+      
     } catch (error) {
-      console.error('LaTeX export error:', error);
+      console.error('LaTeX image export error:', error);
       toast({
         title: "Export Failed",
-        description: "There was an error generating the LaTeX code.",
+        description: "There was an error generating the LaTeX image. Downloading LaTeX code instead.",
         variant: "destructive",
       });
+      
+      // Fallback: download LaTeX code as text file if image generation fails
+      if (latexCode) {
+        const blob = new Blob([latexCode], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const timestamp = new Date().toISOString().slice(0, 10);
+        a.download = `${config.tableTitle.replace(/\s+/g, '_')}_${timestamp}.tex`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        // Show dialog with LaTeX code
+        setLatexDialogOpen(true);
+      }
     } finally {
       setIsExporting(false);
     }
@@ -441,11 +93,44 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
 
   const handleExport = () => {
     if (exportFormat === 'excel') {
-      exportToExcel();
+      setIsExporting(true);
+      const success = exportToExcel(data, config, customHeaders);
+      setIsExporting(false);
+      
+      if (success) {
+        toast({
+          title: "Export Successful",
+          description: "Excel file has been downloaded with publication formatting.",
+        });
+      } else {
+        toast({
+          title: "Export Failed",
+          description: "There was an error exporting to Excel.",
+          variant: "destructive",
+        });
+      }
     } else if (exportFormat === 'word') {
-      exportToWord();
+      setIsExporting(true);
+      exportToWord(data, config, customHeaders)
+        .then(success => {
+          if (success) {
+            toast({
+              title: "Export Successful",
+              description: "Publication-ready Word document has been downloaded.",
+            });
+          } else {
+            toast({
+              title: "Export Failed",
+              description: "There was an error exporting to Word.",
+              variant: "destructive",
+            });
+          }
+        })
+        .finally(() => {
+          setIsExporting(false);
+        });
     } else if (exportFormat === 'latex') {
-      exportToLatex();
+      exportToLatexImage();
     }
   };
 
@@ -469,9 +154,15 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
               <SelectContent>
                 <SelectItem value="excel">Excel (.xlsx)</SelectItem>
                 <SelectItem value="word">Word (.docx)</SelectItem>
-                <SelectItem value="latex">LaTeX (.tex)</SelectItem>
+                <SelectItem value="latex">LaTeX Table Image (.png)</SelectItem>
               </SelectContent>
             </Select>
+            
+            {exportFormat === 'latex' && (
+              <div className="text-xs text-muted-foreground mt-1">
+                Exports a visual representation of your LaTeX table as a PNG image.
+              </div>
+            )}
           </div>
 
           {/* Export Style */}
@@ -494,12 +185,78 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
 
           {/* Export Preview */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Export Preview</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Export Preview</Label>
+              
+              {exportFormat === 'latex' && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 px-2 text-xs">
+                      <Image className="h-3.5 w-3.5 mr-1" />
+                      Preview
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-96 p-0" align="end">
+                    <div className="p-4 bg-white rounded-md">
+                      <div className="font-medium mb-2 text-sm">{config.tableTitle}</div>
+                      <div className="border rounded-md overflow-hidden">
+                        <div className="p-2 bg-muted/30 text-center text-xs">
+                          LaTeX Table Preview
+                        </div>
+                        <div className="p-3 bg-white text-xs overflow-hidden">
+                          <div className="text-center mb-2 font-bold">
+                            {config.tableTitle}
+                          </div>
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr>
+                                {config.visibleColumns.map((col: string) => (
+                                  <th key={col} className="border-b-2 border-black p-1 text-center">
+                                    {customHeaders[col]}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {data.coefficients.slice(0, 3).map((row: any, idx: number) => (
+                                <tr key={idx}>
+                                  {config.visibleColumns.map((col: string) => (
+                                    <td key={`${idx}-${col}`} className="p-1 text-center">
+                                      {col === 'variable' ? row[col] : '0.00'}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                              {data.coefficients.length > 3 && (
+                                <tr>
+                                  <td colSpan={config.visibleColumns.length} className="text-center p-1">...</td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                          {config.showSignificance && (
+                            <div className="text-xs italic mt-2 text-left">
+                              Note: * p&lt;0.05, ** p&lt;0.01, *** p&lt;0.001
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        The actual downloaded image will have proper LaTeX formatting.
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
+            
             <div className="p-3 bg-muted/30 rounded text-xs font-mono space-y-1">
               <div>Title: {config.tableTitle}</div>
               <div>Columns: {config.visibleColumns.length}</div>
               <div>Rows: {data.coefficients.length}</div>
-              <div>Format: {exportFormat.toUpperCase()}</div>
+              <div>Format: {exportFormat === 'excel' ? 'Excel (.xlsx)' : 
+                         exportFormat === 'word' ? 'Word (.docx)' : 
+                         'LaTeX Table Image (.png)'}</div>
               {config.includeModelStats && <div>+ Model Statistics</div>}
               {config.showSignificance && <div>+ Significance Stars</div>}
             </div>
@@ -515,8 +272,14 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
               size="lg"
               disabled={isExporting}
             >
-              <Download className="h-4 w-4 mr-2" />
-              {isExporting ? 'Exporting...' : `Export ${exportFormat === 'excel' ? 'Excel' : exportFormat === 'word' ? 'Word' : 'LaTeX'}`}
+              {exportFormat === 'latex' ? 
+                <Image className="h-4 w-4 mr-2" /> : 
+                <Download className="h-4 w-4 mr-2" />
+              }
+              {isExporting ? 'Exporting...' : 
+                exportFormat === 'excel' ? 'Export Excel' : 
+                exportFormat === 'word' ? 'Export Word' : 
+                'Export LaTeX Image'}
             </Button>
           </div>
         </CardContent>
@@ -526,11 +289,20 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
       <Dialog open={latexDialogOpen} onOpenChange={setLatexDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>LaTeX Code for Table</DialogTitle>
+            <DialogTitle>LaTeX Table Exported</DialogTitle>
             <DialogDescription>
-              The LaTeX code has been downloaded as a .tex file. You can copy this code or view it below.
+              {latexImage ? 
+                'Your LaTeX table has been rendered as an image and downloaded. You can also copy the LaTeX code below.' :
+                'The image has been downloaded. You can also copy the LaTeX code below if needed.'}
             </DialogDescription>
           </DialogHeader>
+          
+          {latexImage && (
+            <div className="my-4 border rounded-md overflow-hidden">
+              <img src={latexImage} alt="LaTeX Table" className="w-full" />
+            </div>
+          )}
+          
           <div className="bg-muted/30 rounded p-3 overflow-x-auto">
             <pre className="text-xs font-mono whitespace-pre-wrap">{latexCode}</pre>
           </div>
@@ -539,4 +311,3 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
     </>
   );
 };
-
