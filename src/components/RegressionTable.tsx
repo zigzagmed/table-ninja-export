@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InteractiveTable } from './table/InteractiveTable';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { DiagnosticAnalysis } from './DiagnosticAnalysis';
 import { regressionData } from '../data/regressionData';
 
 export const RegressionTable = () => {
@@ -39,11 +38,6 @@ export const RegressionTable = () => {
   return (
     <TooltipProvider>
       <div className="w-full space-y-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-foreground mb-2">Regression Analysis - Table View</h2>
-          <p className="text-muted-foreground">Customize and export your OLS regression results</p>
-        </div>
-        
         <Tabs defaultValue="table" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="output">Output</TabsTrigger>
@@ -57,28 +51,8 @@ export const RegressionTable = () => {
                 <CardTitle>Regression Output</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-muted p-4 rounded-lg font-mono text-sm">
-                  <pre>{`                            OLS Regression Results                            
-==============================================================================
-Dep. Variable:              realcons   R-squared:                       0.758
-Model:                            OLS   Adj. R-squared:                  0.757
-Method:                 Least Squares   F-statistic:                     630.1
-Date:                2025-06-11 09:12   Prob (F-statistic):           7.20e-64
-Time:                        09:12:00   Log-Likelihood:                 -1716.
-No. Observations:                 203   AIC:                             3436.
-Df Residuals:                     201   BIC:                             3442.
-Df Model:                           1                                         
-Covariance Type:            nonrobust                                         
-==============================================================================
-                 coef    std err          t      P>|t|      [0.025      0.975]
-------------------------------------------------------------------------------
-Intercept   -4659.....    386.266    -12.064      0.000   -5421...   -3898...
-realgovt       14.2994      0.570     25.101      0.000      13.176     15.423
-==============================================================================
-Omnibus:                       34.617   Durbin-Watson:                   0.028
-Prob(Omnibus):                  0.000   Jarque-Bera (JB):                8.591
-Skew:                           0.067   Prob(JB):                        0.014
-Kurtosis:                       2.001   Condition No.:                   3272.`}</pre>
+                <div className="bg-muted p-4 rounded-lg">
+                  <p className="text-muted-foreground text-center">This is filler content for the output tab.</p>
                 </div>
               </CardContent>
             </Card>
@@ -97,7 +71,16 @@ Kurtosis:                       2.001   Condition No.:                   3272.`}
           </TabsContent>
           
           <TabsContent value="diagnostic" className="space-y-4">
-            <DiagnosticAnalysis diagnostics={regressionData.diagnostics} />
+            <Card>
+              <CardHeader>
+                <CardTitle>Diagnostic Analysis</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-muted p-4 rounded-lg">
+                  <p className="text-muted-foreground text-center">This is filler content for the diagnostic tab.</p>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
