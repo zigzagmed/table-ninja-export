@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Download, Export, Table } from 'lucide-react';
+import { Download, FileDown, Table } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Document, Packer, Table as DocxTable, TableRow, TableCell, Paragraph, WidthType } from 'docx';
 
@@ -174,7 +174,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
     <Card className="h-fit">
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
-          <Export className="h-5 w-5" />
+          <FileDown className="h-5 w-5" />
           Export Options
         </CardTitle>
       </CardHeader>
