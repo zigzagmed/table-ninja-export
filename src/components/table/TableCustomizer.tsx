@@ -7,6 +7,15 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuCheckboxItem, 
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown, Columns } from 'lucide-react';
 
 interface TableCustomizerProps {
   config: any;
@@ -39,6 +48,42 @@ export const TableCustomizer: React.FC<TableCustomizerProps> = ({
     onConfigChange({ visibleColumns: newVisibleColumns });
   };
 
+  const loadTemplate = (templateName: string) => {
+    let templateConfig = {};
+    
+    switch (templateName) {
+      case 'apa':
+        templateConfig = {
+          tableTitle: 'Regression Analysis Results',
+          decimalPlaces: 3,
+          showSignificance: true,
+          includeModelStats: true,
+          visibleColumns: ['variable', 'coef', 'std_err', 't', 'p_value']
+        };
+        break;
+      case 'academic':
+        templateConfig = {
+          tableTitle: 'OLS Regression Results',
+          decimalPlaces: 4,
+          showSignificance: true,
+          includeModelStats: true,
+          visibleColumns: ['variable', 'coef', 'std_err', 't', 'p_value', 'ci_lower', 'ci_upper']
+        };
+        break;
+      case 'minimal':
+        templateConfig = {
+          tableTitle: 'Regression Coefficients',
+          decimalPlaces: 3,
+          showSignificance: true,
+          includeModelStats: false,
+          visibleColumns: ['variable', 'coef', 'p_value']
+        };
+        break;
+    }
+    
+    onConfigChange(templateConfig);
+  };
+
   return (
     <Card className="h-fit">
       <CardHeader>
@@ -58,21 +103,33 @@ export const TableCustomizer: React.FC<TableCustomizerProps> = ({
 
         <Separator />
 
-        {/* Column Visibility */}
+        {/* Column Visibility Dropdown */}
         <div className="space-y-3">
           <Label className="text-sm font-medium">Visible Columns</Label>
-          {availableColumns.map((column) => (
-            <div key={column.id} className="flex items-center justify-between">
-              <Label htmlFor={`col-${column.id}`} className="text-sm">
-                {column.label}
-              </Label>
-              <Switch
-                id={`col-${column.id}`}
-                checked={config.visibleColumns.includes(column.id)}
-                onCheckedChange={(checked) => handleColumnVisibility(column.id, checked)}
-              />
-            </div>
-          ))}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full justify-between">
+                <div className="flex items-center gap-2">
+                  <Columns className="h-4 w-4" />
+                  <span>{config.visibleColumns.length} of {availableColumns.length} columns</span>
+                </div>
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56">
+              <DropdownMenuLabel>Select Columns</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {availableColumns.map((column) => (
+                <DropdownMenuCheckboxItem
+                  key={column.id}
+                  checked={config.visibleColumns.includes(column.id)}
+                  onCheckedChange={(checked) => handleColumnVisibility(column.id, checked)}
+                >
+                  {column.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <Separator />
@@ -153,14 +210,14 @@ export const TableCustomizer: React.FC<TableCustomizerProps> = ({
         <div className="space-y-2">
           <Label className="text-sm font-medium">Templates</Label>
           <div className="grid grid-cols-1 gap-2">
-            <Button variant="outline" size="sm" onClick={() => console.log('Load APA template')}>
+            <Button variant="outline" size="sm" onClick={() => loadTemplate('apa')}>
               APA Style
             </Button>
-            <Button variant="outline" size="sm" onClick={() => console.log('Load Academic template')}>
-              Academic
+            <Button variant="outline" size="sm" onClick={() => loadTemplate('academic')}>
+              Academic Journal
             </Button>
-            <Button variant="outline" size="sm" onClick={() => console.log('Save current template')}>
-              Save Current
+            <Button variant="outline" size="sm" onClick={() => loadTemplate('minimal')}>
+              Minimal
             </Button>
           </div>
         </div>
