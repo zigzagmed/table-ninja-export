@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InteractiveTable } from './table/InteractiveTable';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { DiagnosticAnalysis } from './DiagnosticAnalysis';
 import { regressionData } from '../data/regressionData';
 
 export const RegressionTable = () => {
@@ -96,57 +97,7 @@ Kurtosis:                       2.001   Condition No.:                   3272.`}
           </TabsContent>
           
           <TabsContent value="diagnostic" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Diagnostic Tests</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <h4 className="font-semibold">Residual Tests</h4>
-                    <div className="text-sm space-y-1">
-                      <div className="flex justify-between">
-                        <span>Omnibus:</span>
-                        <span>34.617</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Prob(Omnibus):</span>
-                        <span>0.000</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Skew:</span>
-                        <span>0.067</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Kurtosis:</span>
-                        <span>2.001</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className="font-semibold">Autocorrelation Tests</h4>
-                    <div className="text-sm space-y-1">
-                      <div className="flex justify-between">
-                        <span>Durbin-Watson:</span>
-                        <span>0.028</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Jarque-Bera (JB):</span>
-                        <span>8.591</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Prob(JB):</span>
-                        <span>0.014</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Condition No.:</span>
-                        <span>3272</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <DiagnosticAnalysis diagnostics={regressionData.diagnostics} />
           </TabsContent>
         </Tabs>
       </div>
