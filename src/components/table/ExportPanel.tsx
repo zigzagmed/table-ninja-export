@@ -149,8 +149,21 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
             children: [new Paragraph({
               text: customHeaders[col],
               alignment: AlignmentType.CENTER,
+              spacing: { after: 100 },
+              run: {
+                font: "Times New Roman",
+                size: 24, // 12pt font
+                bold: true,
+              }
             })],
             width: { size: 100 / visibleColumnOrder.length, type: WidthType.PERCENTAGE },
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 6 },
+              bottom: { style: BorderStyle.SINGLE, size: 6 },
+              left: { style: BorderStyle.SINGLE, size: 6 },
+              right: { style: BorderStyle.SINGLE, size: 6 },
+            },
+            margins: { top: 100, bottom: 100, left: 100, right: 100 },
           })
         ),
       });
@@ -176,8 +189,20 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
               children: [new Paragraph({
                 text: cellValue,
                 alignment: alignment,
+                spacing: { after: 100 },
+                run: {
+                  font: "Times New Roman",
+                  size: 22, // 11pt font for data
+                }
               })],
               width: { size: 100 / visibleColumnOrder.length, type: WidthType.PERCENTAGE },
+              borders: {
+                top: { style: BorderStyle.SINGLE, size: 3 },
+                bottom: { style: BorderStyle.SINGLE, size: 3 },
+                left: { style: BorderStyle.SINGLE, size: 3 },
+                right: { style: BorderStyle.SINGLE, size: 3 },
+              },
+              margins: { top: 100, bottom: 100, left: 100, right: 100 },
             });
           }),
         })
@@ -187,46 +212,113 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
       const table = new DocxTable({
         rows: [headerRow, ...dataRows],
         width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: {
+          top: { style: BorderStyle.DOUBLE, size: 8 },
+          bottom: { style: BorderStyle.DOUBLE, size: 8 },
+          left: { style: BorderStyle.SINGLE, size: 6 },
+          right: { style: BorderStyle.SINGLE, size: 6 },
+          insideHorizontal: { style: BorderStyle.SINGLE, size: 3 },
+          insideVertical: { style: BorderStyle.SINGLE, size: 3 },
+        },
+        layout: "autofit",
       });
 
-      // Build document sections
+      // Build document sections with proper academic formatting
       const sections = [
         new Paragraph({
           text: config.tableTitle,
           heading: HeadingLevel.HEADING_1,
           alignment: AlignmentType.CENTER,
+          spacing: { after: 400 },
+          run: {
+            font: "Times New Roman",
+            size: 28, // 14pt font
+            bold: true,
+          }
         }),
-        new Paragraph({ text: "" }), // Spacing
+        new Paragraph({ 
+          text: "",
+          spacing: { after: 200 }
+        }), // Spacing
         table,
       ];
 
-      // Add significance note if enabled
+      // Add significance note if enabled with proper formatting
       if (config.showSignificance) {
         sections.push(
-          new Paragraph({ text: "" }), // Spacing
+          new Paragraph({ 
+            text: "",
+            spacing: { after: 200 }
+          }), // Spacing
           new Paragraph({
             text: "Note: * p<0.05, ** p<0.01, *** p<0.001",
             alignment: AlignmentType.LEFT,
+            spacing: { after: 200 },
+            run: {
+              font: "Times New Roman",
+              size: 20, // 10pt font for notes
+              italics: true,
+            }
           })
         );
       }
 
-      // Add model statistics if enabled
+      // Add model statistics if enabled with proper formatting
       if (config.includeModelStats) {
         sections.push(
-          new Paragraph({ text: "" }),
+          new Paragraph({ 
+            text: "",
+            spacing: { after: 200 }
+          }),
           new Paragraph({
             text: "Model Statistics",
             heading: HeadingLevel.HEADING_2,
+            spacing: { after: 200 },
+            run: {
+              font: "Times New Roman",
+              size: 24, // 12pt font
+              bold: true,
+            }
           }),
           new Paragraph({
             text: `Model: ${data.modelInfo.model}; Dependent Variable: ${data.modelInfo.dependentVariable}; N = ${data.modelInfo.observations}; R² = ${formatNumber(data.modelStats.rSquared)}; Adj. R² = ${formatNumber(data.modelStats.adjRSquared)}; F = ${formatNumber(data.modelStats.fStatistic)}`,
+            spacing: { after: 200 },
+            run: {
+              font: "Times New Roman",
+              size: 22, // 11pt font
+            }
           })
         );
       }
 
       const doc = new Document({
+        styles: {
+          default: {
+            document: {
+              run: {
+                font: "Times New Roman",
+                size: 22,
+              },
+              paragraph: {
+                spacing: {
+                  line: 360, // 1.5 line spacing
+                  lineRule: "auto",
+                }
+              }
+            }
+          }
+        },
         sections: [{
+          properties: {
+            page: {
+              margin: {
+                top: 1440, // 1 inch margins
+                bottom: 1440,
+                left: 1440,
+                right: 1440,
+              }
+            }
+          },
           children: sections,
         }],
       });
@@ -243,7 +335,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
 
       toast({
         title: "Export Successful",
-        description: "Word document has been downloaded with publication formatting.",
+        description: "Publication-ready Word document has been downloaded with professional formatting.",
       });
     } catch (error) {
       toast({
