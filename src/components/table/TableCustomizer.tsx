@@ -1,4 +1,3 @@
-
 import React, { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,6 +61,11 @@ export const TableCustomizer: React.FC<TableCustomizerProps> = React.memo(({
   const handleModelStatsChange = useCallback((checked: boolean) => {
     onConfigChange({ includeModelStats: checked });
   }, [onConfigChange]);
+
+  const handleApply = useCallback(() => {
+    // For now, this just closes the dialog or could trigger additional actions
+    console.log('Apply button clicked - current config:', config);
+  }, [config]);
 
   return (
     <div className="space-y-6">
@@ -152,6 +156,15 @@ export const TableCustomizer: React.FC<TableCustomizerProps> = React.memo(({
             onCheckedChange={handleModelStatsChange}
           />
         </div>
+      </div>
+
+      <Separator />
+
+      {/* Apply Button */}
+      <div className="flex justify-end">
+        <Button onClick={handleApply} className="w-full">
+          Apply
+        </Button>
       </div>
     </div>
   );
