@@ -1,3 +1,4 @@
+
 // Utility functions for exporting data in various formats
 
 import * as XLSX from 'xlsx';
@@ -102,6 +103,17 @@ export const exportToExcel = (data: ExportData, config: ExportConfig, customHead
     // Set column widths
     ws['!cols'] = visibleColumnOrder.map(() => ({ wch: 12 }));
     
+    // Apply bold formatting to header row (row 3, which is index 2)
+    const headerRowIndex = 2;
+    for (let col = 0; col < visibleColumnOrder.length; col++) {
+      const cellAddress = XLSX.utils.encode_cell({ r: headerRowIndex, c: col });
+      if (ws[cellAddress]) {
+        if (!ws[cellAddress].s) ws[cellAddress].s = {};
+        if (!ws[cellAddress].s.font) ws[cellAddress].s.font = {};
+        ws[cellAddress].s.font.bold = true;
+      }
+    }
+    
     XLSX.utils.book_append_sheet(wb, ws, 'Regression Results');
     
     // Add model statistics sheet if enabled
@@ -122,6 +134,17 @@ export const exportToExcel = (data: ExportData, config: ExportConfig, customHead
       
       const statsWs = XLSX.utils.aoa_to_sheet(statsData);
       statsWs['!cols'] = [{ wch: 20 }, { wch: 15 }];
+      
+      // Apply bold formatting to statistics headers
+      const statsHeaderCells = ['A3', 'B3'];
+      statsHeaderCells.forEach(cellAddress => {
+        if (statsWs[cellAddress]) {
+          if (!statsWs[cellAddress].s) statsWs[cellAddress].s = {};
+          if (!statsWs[cellAddress].s.font) statsWs[cellAddress].s.font = {};
+          statsWs[cellAddress].s.font.bold = true;
+        }
+      });
+      
       XLSX.utils.book_append_sheet(wb, statsWs, 'Model Statistics');
     }
     
