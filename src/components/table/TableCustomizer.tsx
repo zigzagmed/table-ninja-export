@@ -1,76 +1,136 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuCheckboxItem, 
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown, Columns } from 'lucide-react';
 
 interface TableCustomizerProps {
   config: any;
   customHeaders: any;
   onConfigChange: (config: any) => void;
-  onHeaderChange: (column: string, newHeader: string) => void;
-  onClose: () => void;
+  onHeaderChange: (column: string, header: string) => void;
+  onClose?: () => void;
 }
 
-const DEFAULT_CONFIG = {
-  tableTitle: 'Regression Results',
-  decimalPlaces: 3,
-  showSignificance: true,
-  includeModelStats: true,
-  visibleColumns: ['variable', 'coef', 'std_err', 't', 'p_value', 'ci_lower', 'ci_upper'],
-  columnOrder: ['variable', 'coef', 'std_err', 't', 'p_value', 'ci_lower', 'ci_upper']
-};
-
-const DEFAULT_HEADERS = {
-  variable: 'Variable',
-  coef: 'Coefficient',
-  std_err: 'Std Error',
-  t: 't-statistic',
-  p_value: 'P-value',
-  ci_lower: 'CI Lower',
-  ci_upper: 'CI Upper'
-};
-
-export const TableCustomizer: React.FC<TableCustomizerProps> = ({
+export const TableCustomizer: React.FC<TableCustomizerProps> = React.memo(({
   config,
   customHeaders,
   onConfigChange,
   onHeaderChange,
   onClose
 }) => {
-  const handleReset = () => {
-    onConfigChange(DEFAULT_CONFIG);
-    Object.entries(DEFAULT_HEADERS).forEach(([column, header]) => {
-      onHeaderChange(column, header);
-    });
-  };
+  const availableColumns = [
+    { id: 'variable', label: 'Variable' },
+    { id: 'coef', label: 'Coefficient' },
+    { id: 'std_err', label: 'Std. Error' },
+    { id: 't', label: 't-statistic' },
+    { id: 'p_value', label: 'P-value' },
+    { id: 'ci_lower', label: 'CI Lower' },
+    { id: 'ci_upper', label: 'CI Upper' }
+  ];
+
+  const handleColumnVisibility = useCallback((columnId: string, visible: boolean) => {
+    const newVisibleColumns = visible 
+      ? [...config.visibleColumns, columnId]
+      : config.visibleColumns.filter((col: string) => col !== columnId);
+    
+    onConfigChange({ visibleColumns: newVisibleColumns });
+  }, [config.visibleColumns, onConfigChange]);
+
+  const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onConfigChange({ tableTitle: e.target.value });
+  }, [onConfigChange]);
+
+  const handleDecimalPlacesChange = useCallback((value: string) => {
+    onConfigChange({ decimalPlaces: parseInt(value) });
+  }, [onConfigChange]);
+
+  const handleSignificanceChange = useCallback((checked: boolean) => {
+    onConfigChange({ showSignificance: checked });
+  }, [onConfigChange]);
+
+  const handleModelStatsChange = useCallback((checked: boolean) => {
+    onConfigChange({ includeModelStats: checked });
+  }, [onConfigChange]);
+
+  const handleApply = useCallback(() => {
+    console.log('Apply button clicked - current config:', config);
+    if (onClose) {
+      onClose();
+    }
+  }, [config, onClose]);
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="tableTitle">Table Title</Label>
-          <Input
-            id="tableTitle"
-            value={config.tableTitle}
-            onChange={(e) => onConfigChange({ tableTitle: e.target.value })}
-            className="mt-1"
-          />
-        </div>
+      {/* Table Title */}
+      <div className="space-y-2">
+        <Label htmlFor="table-title">Table Title</Label>
+        <Input
+          id="table-title"
+          value={config.tableTitle}
+          onChange={handleTitleChange}
+          placeholder="Enter table title"
+        />
+      </div>
 
-        <div>
-          <Label htmlFor="decimalPlaces">Decimal Places</Label>
-          <Select
-            value={config.decimalPlaces.toString()}
-            onValueChange={(value) => onConfigChange({ decimalPlaces: parseInt(value) })}
+      <Separator />
+
+      {/* Column Visibility Dropdown */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium">Visible Columns</Label>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              <div className="flex items-center gap-2">
+                <Columns className="h-4 w-4" />
+                <span>{config.visibleColumns.length} of {availableColumns.length} columns</span>
+              </div>
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56">
+            <DropdownMenuLabel>Select Columns</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {availableColumns.map((column) => (
+              <DropdownMenuCheckboxItem
+                key={column.id}
+                checked={config.visibleColumns.includes(column.id)}
+                onCheckedChange={(checked) => handleColumnVisibility(column.id, checked)}
+              >
+                {column.label}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <Separator />
+
+      {/* Formatting Options */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium">Formatting</Label>
+        
+        <div className="space-y-2">
+          <Label htmlFor="decimal-places" className="text-sm">Decimal Places</Label>
+          <Select 
+            value={config.decimalPlaces.toString()} 
+            onValueChange={handleDecimalPlacesChange}
           >
-            <SelectTrigger className="mt-1">
+            <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="1">1</SelectItem>
               <SelectItem value="2">2</SelectItem>
               <SelectItem value="3">3</SelectItem>
               <SelectItem value="4">4</SelectItem>
@@ -79,81 +139,39 @@ export const TableCustomizer: React.FC<TableCustomizerProps> = ({
           </Select>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="showSignificance"
+        <div className="flex items-center justify-between">
+          <Label htmlFor="show-significance" className="text-sm">
+            Show Significance Stars
+          </Label>
+          <Switch
+            id="show-significance"
             checked={config.showSignificance}
-            onCheckedChange={(checked) => onConfigChange({ showSignificance: checked })}
+            onCheckedChange={handleSignificanceChange}
           />
-          <Label htmlFor="showSignificance">Show significance stars</Label>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="includeModelStats"
+        <div className="flex items-center justify-between">
+          <Label htmlFor="include-stats" className="text-sm">
+            Include Model Statistics
+          </Label>
+          <Switch
+            id="include-stats"
             checked={config.includeModelStats}
-            onCheckedChange={(checked) => onConfigChange({ includeModelStats: checked })}
+            onCheckedChange={handleModelStatsChange}
           />
-          <Label htmlFor="includeModelStats">Include model statistics</Label>
         </div>
       </div>
 
       <Separator />
 
-      <div>
-        <Label className="text-sm font-medium">Visible Columns</Label>
-        <div className="mt-2 space-y-2">
-          {config.columnOrder.map((column: string) => (
-            <div key={column} className="flex items-center space-x-2">
-              <Checkbox
-                id={`column-${column}`}
-                checked={config.visibleColumns.includes(column)}
-                onCheckedChange={(checked) => {
-                  const newVisibleColumns = checked
-                    ? [...config.visibleColumns, column]
-                    : config.visibleColumns.filter((col: string) => col !== column);
-                  onConfigChange({ visibleColumns: newVisibleColumns });
-                }}
-              />
-              <Label htmlFor={`column-${column}`} className="flex-1">
-                {customHeaders[column]}
-              </Label>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <Separator />
-
-      <div>
-        <Label className="text-sm font-medium">Column Headers</Label>
-        <div className="mt-2 space-y-2">
-          {config.columnOrder.map((column: string) => (
-            <div key={column}>
-              <Label htmlFor={`header-${column}`} className="text-xs text-muted-foreground">
-                {column}
-              </Label>
-              <Input
-                id={`header-${column}`}
-                value={customHeaders[column]}
-                onChange={(e) => onHeaderChange(column, e.target.value)}
-                className="mt-1"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <Separator />
-
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={handleReset}>
-          Reset to Default
-        </Button>
-        <Button onClick={onClose}>
+      {/* Apply Button */}
+      <div className="flex justify-end">
+        <Button onClick={handleApply} className="w-full">
           Apply
         </Button>
       </div>
     </div>
   );
-};
+});
+
+TableCustomizer.displayName = 'TableCustomizer';
