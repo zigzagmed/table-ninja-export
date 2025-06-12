@@ -50,9 +50,9 @@ export const formatNumber = (value: number, type: string = 'default', decimals: 
 
 export const getSignificanceStars = (pValue: number, showSignificance: boolean) => {
   if (!showSignificance) return '';
-  if (pValue < 0.001) return '^{***}';
-  if (pValue < 0.01) return '^{**}';
-  if (pValue < 0.05) return '^{*}';
+  if (pValue < 0.001) return '***';
+  if (pValue < 0.01) return '**';
+  if (pValue < 0.05) return '*';
   return '';
 };
 
@@ -191,11 +191,12 @@ export const exportToWord = async (data: ExportData, config: ExportConfig, custo
           return new TableCell({
             children: [new Paragraph({
               text: cellValue,
-              alignment: AlignmentType.CENTER,
+              alignment: columnId === 'variable' ? AlignmentType.LEFT : AlignmentType.CENTER,
               spacing: { after: 100 },
               run: {
                 font: "Times New Roman",
                 size: 22, // 11pt font for data
+                bold: columnId === 'variable', // Make variable names bold
               }
             })],
             width: { size: 100 / visibleColumnOrder.length, type: WidthType.PERCENTAGE },
