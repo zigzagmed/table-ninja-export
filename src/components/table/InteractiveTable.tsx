@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -191,7 +192,7 @@ export const InteractiveTable: React.FC<InteractiveTableProps> = ({
                 {data.coefficients.map((row: any, index: number) => (
                   <TableRow key={index}>
                     {visibleColumnOrder.map((columnId: string) => (
-                      <TableCell key={columnId} className="font-mono text-sm">
+                      <TableCell key={columnId} className="text-sm">
                         {columnId === 'variable' && row[columnId]}
                         {columnId === 'coef' && (
                           <span>
