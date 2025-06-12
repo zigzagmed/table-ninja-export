@@ -5,9 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InteractiveTable } from './table/InteractiveTable';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { regressionData } from '../data/regressionData';
+import { useRegressionData } from '../hooks/useRegressionData';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 
-export const RegressionTable = () => {
+interface RegressionTableProps {
+  regressionId?: string;
+}
+
+export const RegressionTable: React.FC<RegressionTableProps> = ({ regressionId }) => {
   const [tableConfig, setTableConfig] = useState({
     visibleColumns: ['variable', 'coef', 'std_err', 't', 'p_value', 'ci_lower', 'ci_upper'],
     decimalPlaces: 4,
@@ -27,6 +33,14 @@ export const RegressionTable = () => {
     ci_upper: '0.975]'
   });
 
+  const {
+    regressionData,
+    isLoading,
+    error,
+    isUsingFallback,
+    refreshData
+  } = useRegressionData(regressionId);
+
   const handleConfigChange = (newConfig: any) => {
     setTableConfig(prev => ({ ...prev, ...newConfig }));
   };
@@ -35,9 +49,45 @@ export const RegressionTable = () => {
     setCustomHeaders(prev => ({ ...prev, [column]: newHeader }));
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin mr-2" />
+        <span>Loading regression data...</span>
+      </div>
+    );
+  }
+
   return (
     <TooltipProvider>
       <div className="w-full space-y-6">
+        {/* Status alerts */}
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>Failed to load regression data: {error.message}</span>
+              <Button onClick={refreshData} variant="outline" size="sm">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {isUsingFallback && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>Using demo data - Connect to your Python backend to load real results</span>
+              <Button onClick={refreshData} variant="outline" size="sm">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Backend
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Tabs defaultValue="table" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="output">Output</TabsTrigger>
@@ -52,7 +102,12 @@ export const RegressionTable = () => {
               </CardHeader>
               <CardContent>
                 <div className="bg-muted p-4 rounded-lg">
-                  <p className="text-muted-foreground text-center">This is filler content for the output tab.</p>
+                  <p className="text-muted-foreground text-center">
+                    Raw output from Python regression analysis will appear here.
+                  </p>
+                  <p className="text-sm text-muted-foreground text-center mt-2">
+                    Connect your backend to see the full statistical output.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -77,7 +132,12 @@ export const RegressionTable = () => {
               </CardHeader>
               <CardContent>
                 <div className="bg-muted p-4 rounded-lg">
-                  <p className="text-muted-foreground text-center">This is filler content for the diagnostic tab.</p>
+                  <p className="text-muted-foreground text-center">
+                    Diagnostic plots and tests from Python analysis will appear here.
+                  </p>
+                  <p className="text-sm text-muted-foreground text-center mt-2">
+                    Connect your backend to see residual plots, normality tests, etc.
+                  </p>
                 </div>
               </CardContent>
             </Card>
