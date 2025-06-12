@@ -29,6 +29,10 @@ export const TableActions: React.FC<TableActionsProps> = React.memo(({
   onConfigChange,
   onHeaderChange
 }) => {
+  const handleCustomizeClose = useCallback(() => {
+    onCustomizeOpenChange(false);
+  }, [onCustomizeOpenChange]);
+
   return (
     <div className="flex gap-2">
       <Dialog open={customizeOpen} onOpenChange={onCustomizeOpenChange}>
@@ -47,6 +51,7 @@ export const TableActions: React.FC<TableActionsProps> = React.memo(({
             customHeaders={customHeaders}
             onConfigChange={onConfigChange}
             onHeaderChange={onHeaderChange}
+            onClose={handleCustomizeClose}
           />
         </DialogContent>
       </Dialog>

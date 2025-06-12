@@ -20,13 +20,15 @@ interface TableCustomizerProps {
   customHeaders: any;
   onConfigChange: (config: any) => void;
   onHeaderChange: (column: string, header: string) => void;
+  onClose?: () => void;
 }
 
 export const TableCustomizer: React.FC<TableCustomizerProps> = React.memo(({
   config,
   customHeaders,
   onConfigChange,
-  onHeaderChange
+  onHeaderChange,
+  onClose
 }) => {
   const availableColumns = [
     { id: 'variable', label: 'Variable' },
@@ -63,9 +65,11 @@ export const TableCustomizer: React.FC<TableCustomizerProps> = React.memo(({
   }, [onConfigChange]);
 
   const handleApply = useCallback(() => {
-    // For now, this just closes the dialog or could trigger additional actions
     console.log('Apply button clicked - current config:', config);
-  }, [config]);
+    if (onClose) {
+      onClose();
+    }
+  }, [config, onClose]);
 
   return (
     <div className="space-y-6">
