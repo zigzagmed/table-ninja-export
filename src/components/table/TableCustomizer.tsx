@@ -47,42 +47,6 @@ export const TableCustomizer: React.FC<TableCustomizerProps> = ({
     onConfigChange({ visibleColumns: newVisibleColumns });
   };
 
-  const loadTemplate = (templateName: string) => {
-    let templateConfig = {};
-    
-    switch (templateName) {
-      case 'apa':
-        templateConfig = {
-          tableTitle: 'Regression Analysis Results',
-          decimalPlaces: 3,
-          showSignificance: true,
-          includeModelStats: true,
-          visibleColumns: ['variable', 'coef', 'std_err', 't', 'p_value']
-        };
-        break;
-      case 'academic':
-        templateConfig = {
-          tableTitle: 'OLS Regression Results',
-          decimalPlaces: 4,
-          showSignificance: true,
-          includeModelStats: true,
-          visibleColumns: ['variable', 'coef', 'std_err', 't', 'p_value', 'ci_lower', 'ci_upper']
-        };
-        break;
-      case 'minimal':
-        templateConfig = {
-          tableTitle: 'Regression Coefficients',
-          decimalPlaces: 3,
-          showSignificance: true,
-          includeModelStats: false,
-          visibleColumns: ['variable', 'coef', 'p_value']
-        };
-        break;
-    }
-    
-    onConfigChange(templateConfig);
-  };
-
   return (
     <div className="space-y-6">
       {/* Table Title */}
@@ -171,24 +135,6 @@ export const TableCustomizer: React.FC<TableCustomizerProps> = ({
             checked={config.includeModelStats}
             onCheckedChange={(checked) => onConfigChange({ includeModelStats: checked })}
           />
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Templates */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">Templates</Label>
-        <div className="grid grid-cols-1 gap-2">
-          <Button variant="outline" size="sm" onClick={() => loadTemplate('apa')}>
-            APA Style
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => loadTemplate('academic')}>
-            Academic Journal
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => loadTemplate('minimal')}>
-            Minimal
-          </Button>
         </div>
       </div>
     </div>
