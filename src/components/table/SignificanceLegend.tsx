@@ -5,7 +5,7 @@ interface SignificanceLegendProps {
   config: any;
 }
 
-export const SignificanceLegend: React.FC<SignificanceLegendProps> = ({ config }) => {
+export const SignificanceLegend: React.FC<SignificanceLegendProps> = React.memo(({ config }) => {
   if (!config.showSignificance) return null;
 
   return (
@@ -13,4 +13,6 @@ export const SignificanceLegend: React.FC<SignificanceLegendProps> = ({ config }
       <p>Significance levels: * p&lt;0.05, ** p&lt;0.01, *** p&lt;0.001</p>
     </div>
   );
-};
+});
+
+SignificanceLegend.displayName = 'SignificanceLegend';

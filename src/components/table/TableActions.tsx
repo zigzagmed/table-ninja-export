@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { TableCustomizer } from './TableCustomizer';
@@ -18,7 +18,7 @@ interface TableActionsProps {
   onHeaderChange: (column: string, newHeader: string) => void;
 }
 
-export const TableActions: React.FC<TableActionsProps> = ({
+export const TableActions: React.FC<TableActionsProps> = React.memo(({
   config,
   customHeaders,
   data,
@@ -71,4 +71,6 @@ export const TableActions: React.FC<TableActionsProps> = ({
       </Dialog>
     </div>
   );
-};
+});
+
+TableActions.displayName = 'TableActions';

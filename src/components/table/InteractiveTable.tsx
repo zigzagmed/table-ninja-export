@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ModelStatsSection } from './ModelStatsSection';
 import { TableSection } from './TableSection';
@@ -14,7 +14,7 @@ interface InteractiveTableProps {
   onHeaderChange: (column: string, newHeader: string) => void;
 }
 
-export const InteractiveTable: React.FC<InteractiveTableProps> = ({
+export const InteractiveTable: React.FC<InteractiveTableProps> = React.memo(({
   data,
   config,
   customHeaders,
@@ -23,6 +23,14 @@ export const InteractiveTable: React.FC<InteractiveTableProps> = ({
 }) => {
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+
+  const handleCustomizeOpenChange = useCallback((open: boolean) => {
+    setCustomizeOpen(open);
+  }, []);
+
+  const handleExportOpenChange = useCallback((open: boolean) => {
+    setExportOpen(open);
+  }, []);
 
   return (
     <Card className="w-full">
@@ -35,8 +43,8 @@ export const InteractiveTable: React.FC<InteractiveTableProps> = ({
             data={data}
             customizeOpen={customizeOpen}
             exportOpen={exportOpen}
-            onCustomizeOpenChange={setCustomizeOpen}
-            onExportOpenChange={setExportOpen}
+            onCustomizeOpenChange={handleCustomizeOpenChange}
+            onExportOpenChange={handleExportOpenChange}
             onConfigChange={onConfigChange}
             onHeaderChange={onHeaderChange}
           />
@@ -54,4 +62,6 @@ export const InteractiveTable: React.FC<InteractiveTableProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
+
+InteractiveTable.displayName = 'InteractiveTable';

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,7 +23,7 @@ interface TableCustomizerProps {
   onHeaderChange: (column: string, header: string) => void;
 }
 
-export const TableCustomizer: React.FC<TableCustomizerProps> = ({
+export const TableCustomizer: React.FC<TableCustomizerProps> = React.memo(({
   config,
   customHeaders,
   onConfigChange,
@@ -39,13 +39,29 @@ export const TableCustomizer: React.FC<TableCustomizerProps> = ({
     { id: 'ci_upper', label: 'CI Upper' }
   ];
 
-  const handleColumnVisibility = (columnId: string, visible: boolean) => {
+  const handleColumnVisibility = useCallback((columnId: string, visible: boolean) => {
     const newVisibleColumns = visible 
       ? [...config.visibleColumns, columnId]
       : config.visibleColumns.filter((col: string) => col !== columnId);
     
     onConfigChange({ visibleColumns: newVisibleColumns });
-  };
+  }, [config.visibleColumns, onConfigChange]);
+
+  const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onConfigChange({ tableTitle: e.target.value });
+  }, [onConfigChange]);
+
+  const handleDecimalPlacesChange = useCallback((value: string) => {
+    onConfigChange({ decimalPlaces: parseInt(value) });
+  }, [onConfigChange]);
+
+  const handleSignificanceChange = useCallback((checked: boolean) => {
+    onConfigChange({ showSignificance: checked });
+  }, [onConfigChange]);
+
+  const handleModelStatsChange = useCallback((checked: boolean) => {
+    onConfigChange({ includeModelStats: checked });
+  }, [onConfigChange]);
 
   return (
     <div className="space-y-6">
@@ -55,7 +71,7 @@ export const TableCustomizer: React.FC<TableCustomizerProps> = ({
         <Input
           id="table-title"
           value={config.tableTitle}
-          onChange={(e) => onConfigChange({ tableTitle: e.target.value })}
+          onChange={handleTitleChange}
           placeholder="Enter table title"
         />
       </div>
@@ -101,7 +117,7 @@ export const TableCustomizer: React.FC<TableCustomizerProps> = ({
           <Label htmlFor="decimal-places" className="text-sm">Decimal Places</Label>
           <Select 
             value={config.decimalPlaces.toString()} 
-            onValueChange={(value) => onConfigChange({ decimalPlaces: parseInt(value) })}
+            onValueChange={handleDecimalPlacesChange}
           >
             <SelectTrigger>
               <SelectValue />
@@ -122,7 +138,7 @@ export const TableCustomizer: React.FC<TableCustomizerProps> = ({
           <Switch
             id="show-significance"
             checked={config.showSignificance}
-            onCheckedChange={(checked) => onConfigChange({ showSignificance: checked })}
+            onCheckedChange={handleSignificanceChange}
           />
         </div>
 
@@ -133,10 +149,12 @@ export const TableCustomizer: React.FC<TableCustomizerProps> = ({
           <Switch
             id="include-stats"
             checked={config.includeModelStats}
-            onCheckedChange={(checked) => onConfigChange({ includeModelStats: checked })}
+            onCheckedChange={handleModelStatsChange}
           />
         </div>
       </div>
     </div>
   );
-};
+});
+
+TableCustomizer.displayName = 'TableCustomizer';

@@ -6,7 +6,7 @@ interface ModelStatsSectionProps {
   config: any;
 }
 
-export const ModelStatsSection: React.FC<ModelStatsSectionProps> = ({ data, config }) => {
+export const ModelStatsSection: React.FC<ModelStatsSectionProps> = React.memo(({ data, config }) => {
   if (!config.includeModelStats) return null;
 
   return (
@@ -51,4 +51,6 @@ export const ModelStatsSection: React.FC<ModelStatsSectionProps> = ({ data, conf
       </div>
     </div>
   );
-};
+});
+
+ModelStatsSection.displayName = 'ModelStatsSection';

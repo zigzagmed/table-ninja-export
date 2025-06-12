@@ -9,7 +9,7 @@ interface SortableTableHeaderProps {
   title: string;
 }
 
-export const SortableTableHeader: React.FC<SortableTableHeaderProps> = ({ id, title }) => {
+export const SortableTableHeader: React.FC<SortableTableHeaderProps> = React.memo(({ id, title }) => {
   const {
     attributes,
     listeners,
@@ -36,4 +36,6 @@ export const SortableTableHeader: React.FC<SortableTableHeaderProps> = ({ id, ti
       {title}
     </TableHead>
   );
-};
+});
+
+SortableTableHeader.displayName = 'SortableTableHeader';

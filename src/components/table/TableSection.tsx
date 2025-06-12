@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, horizontalListSortingStrategy } from '@dnd-kit/sortable';
@@ -12,7 +12,7 @@ interface TableSectionProps {
   onConfigChange: (config: any) => void;
 }
 
-export const TableSection: React.FC<TableSectionProps> = ({
+export const TableSection: React.FC<TableSectionProps> = React.memo(({
   data,
   config,
   customHeaders,
@@ -25,7 +25,7 @@ export const TableSection: React.FC<TableSectionProps> = ({
     })
   );
 
-  const formatNumber = (value: number, type: string = 'default') => {
+  const formatNumber = useCallback((value: number, type: string = 'default') => {
     if (value === null || value === undefined) return 'N/A';
     
     const decimals = config.decimalPlaces;
@@ -38,17 +38,17 @@ export const TableSection: React.FC<TableSectionProps> = ({
       default:
         return value.toFixed(decimals);
     }
-  };
+  }, [config.decimalPlaces]);
 
-  const getSignificanceStars = (pValue: number) => {
+  const getSignificanceStars = useCallback((pValue: number) => {
     if (!config.showSignificance) return '';
     if (pValue < 0.001) return '***';
     if (pValue < 0.01) return '**';
     if (pValue < 0.05) return '*';
     return '';
-  };
+  }, [config.showSignificance]);
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = useCallback((event: any) => {
     const { active, over } = event;
 
     if (active.id !== over.id) {
@@ -58,10 +58,35 @@ export const TableSection: React.FC<TableSectionProps> = ({
       const newColumnOrder = arrayMove(config.columnOrder, oldIndex, newIndex);
       onConfigChange({ columnOrder: newColumnOrder });
     }
-  };
+  }, [config.columnOrder, onConfigChange]);
 
-  const visibleColumnOrder = config.columnOrder.filter((col: string) => 
-    config.visibleColumns.includes(col)
+  const visibleColumnOrder = useMemo(() => 
+    config.columnOrder.filter((col: string) => 
+      config.visibleColumns.includes(col)
+    ), [config.columnOrder, config.visibleColumns]
+  );
+
+  const tableRows = useMemo(() => 
+    data.coefficients.map((row: any, index: number) => (
+      <TableRow key={index}>
+        {visibleColumnOrder.map((columnId: string) => (
+          <TableCell key={columnId} className="text-sm">
+            {columnId === 'variable' && row[columnId]}
+            {columnId === 'coef' && (
+              <span>
+                {formatNumber(row[columnId], 'coefficient')}
+                {getSignificanceStars(row.p_value)}
+              </span>
+            )}
+            {columnId === 'std_err' && formatNumber(row[columnId])}
+            {columnId === 't' && formatNumber(row[columnId])}
+            {columnId === 'p_value' && formatNumber(row[columnId], 'pvalue')}
+            {columnId === 'ci_lower' && formatNumber(row[columnId])}
+            {columnId === 'ci_upper' && formatNumber(row[columnId])}
+          </TableCell>
+        ))}
+      </TableRow>
+    )), [data.coefficients, visibleColumnOrder, formatNumber, getSignificanceStars]
   );
 
   return (
@@ -86,29 +111,12 @@ export const TableSection: React.FC<TableSectionProps> = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.coefficients.map((row: any, index: number) => (
-              <TableRow key={index}>
-                {visibleColumnOrder.map((columnId: string) => (
-                  <TableCell key={columnId} className="text-sm">
-                    {columnId === 'variable' && row[columnId]}
-                    {columnId === 'coef' && (
-                      <span>
-                        {formatNumber(row[columnId], 'coefficient')}
-                        {getSignificanceStars(row.p_value)}
-                      </span>
-                    )}
-                    {columnId === 'std_err' && formatNumber(row[columnId])}
-                    {columnId === 't' && formatNumber(row[columnId])}
-                    {columnId === 'p_value' && formatNumber(row[columnId], 'pvalue')}
-                    {columnId === 'ci_lower' && formatNumber(row[columnId])}
-                    {columnId === 'ci_upper' && formatNumber(row[columnId])}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
+            {tableRows}
           </TableBody>
         </Table>
       </div>
     </DndContext>
   );
-};
+});
+
+TableSection.displayName = 'TableSection';
