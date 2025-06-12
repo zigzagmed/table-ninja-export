@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,7 +19,6 @@ interface ExportPanelProps {
 
 export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHeaders }) => {
   const [exportFormat, setExportFormat] = useState('excel');
-  const [exportStyle, setExportStyle] = useState('standard');
   const [latexFont, setLatexFont] = useState('lmodern');
   const [isExporting, setIsExporting] = useState(false);
   const [latexDialogOpen, setLatexDialogOpen] = useState(false);
@@ -232,22 +230,6 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({ data, config, customHe
                 Exports a visual representation of your LaTeX table as a PNG image.
               </div>
             )}
-          </div>
-
-          {/* Export Style */}
-          <div className="space-y-2">
-            <Label htmlFor="export-style">Style Template</Label>
-            <Select value={exportStyle} onValueChange={setExportStyle}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="standard">Standard</SelectItem>
-                <SelectItem value="apa">APA Style</SelectItem>
-                <SelectItem value="academic">Academic</SelectItem>
-                <SelectItem value="publication">Publication Ready</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           {/* LaTeX Font (only show when LaTeX format is selected) */}
